@@ -47,3 +47,18 @@ def load_processed_data(sample: bool = False) -> pd.DataFrame:
             f"Processed data file not found at: {target_file}. Run the preprocessing pipeline first."
         )
     return pd.read_parquet(target_file)
+
+
+def load_creditcard_data() -> pd.DataFrame:
+    """
+    Load the European Credit Card dataset (creditcard.parquet or creditcard.csv).
+    """
+    from src.config import PROCESSED_CREDITCARD_FILE, RAW_CREDITCARD_FILE
+    if PROCESSED_CREDITCARD_FILE.exists():
+        return pd.read_parquet(PROCESSED_CREDITCARD_FILE)
+    elif RAW_CREDITCARD_FILE.exists():
+        df = pd.read_csv(RAW_CREDITCARD_FILE)
+        df.to_parquet(PROCESSED_CREDITCARD_FILE, engine="pyarrow", compression="snappy", index=False)
+        return df
+    else:
+        raise FileNotFoundError("creditcard dataset not found.")

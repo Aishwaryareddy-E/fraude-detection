@@ -111,3 +111,31 @@ def test_evaluate_investigation_rules(synthetic_analytics_df):
     assert bool(t4["flag_high_risk_category"]) is True
     assert int(t4["risk_score"]) == 4
     assert str(t4["risk_level"]) == "Critical"
+
+
+def test_get_hour_weekday_matrix():
+    from src.analytics import get_hour_weekday_matrix
+    df = pd.DataFrame({
+        "day_name": ["Monday", "Monday", "Tuesday"],
+        "hour": [10, 10, 14],
+        "is_fraud": [0, 1, 1],
+    })
+    matrix = get_hour_weekday_matrix(df, metric="fraud_count")
+    assert matrix.loc["Monday", 10] == 1
+    assert matrix.loc["Tuesday", 14] == 1
+
+
+def test_get_creditcard_metrics():
+    from src.analytics import get_creditcard_metrics
+    df = pd.DataFrame({
+        "Time": [0, 10, 20],
+        "Amount": [100.0, 50.0, 200.0],
+        "V1": [0.1, -0.2, 0.5],
+        "V2": [-0.1, 0.3, -0.4],
+        "Class": [0, 0, 1],
+    })
+    metrics = get_creditcard_metrics(df)
+    assert metrics["total_transactions"] == 3
+    assert metrics["fraud_transactions"] == 1
+    assert metrics["mean_fraud_amount"] == 200.0
+    assert metrics["mean_legit_amount"] == 75.0

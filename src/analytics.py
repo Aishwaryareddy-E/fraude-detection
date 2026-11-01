@@ -355,3 +355,95 @@ def generate_business_insights(df: pd.DataFrame) -> Dict[str, Any]:
             "ratio": kpis["amount_fraud_ratio"],
         },
     }
+
+
+def get_hour_weekday_matrix(df: pd.DataFrame, metric: str = "fraud_count") -> pd.DataFrame:
+    """
+    Computes a 2D matrix of Day of Week (rows) vs Hour of Day (columns 0-23).
+    metric can be 'fraud_count' or 'fraud_rate'.
+    """
+    order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    if metric == "fraud_count":
+        pivot = df.pivot_table(
+            index="day_name",
+            columns="hour",
+            values="is_fraud",
+            aggfunc="sum",
+            fill_value=0,
+            observed=False,
+        )
+    else:
+        pivot = df.pivot_table(
+            index="day_name",
+            columns="hour",
+            values="is_fraud",
+            aggfunc=lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0,
+            fill_value=0,
+            observed=False,
+        )
+    return pivot.reindex(order)
+
+
+def get_creditcard_metrics(cc_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Computes statistical and PCA correlation metrics on the creditcard.csv dataset.
+    """
+    total = len(cc_df)
+    fraud = int(cc_df["Class"].sum())
+    legit = total - fraud
+    fraud_rate = (fraud / total) * 100.0
+
+    total_amt = float(cc_df["Amount"].sum())
+    fraud_amt = float(cc_df[cc_df["Class"] == 1]["Amount"].sum())
+    legit_amt = total_amt - fraud_amt
+
+    mean_amt = float(cc_df["Amount"].mean())
+    mean_fraud_amt = float(cc_df[cc_df["Class"] == 1]["Amount"].mean())
+    mean_legit_amt = float(cc_df[cc_df["Class"] == 0]["Amount"].mean())
+    median_fraud_amt = float(cc_df[cc_df["Class"] == 1]["Amount"].median())
+    median_legit_amt = float(cc_df[cc_df["Class"] == 0]["Amount"].median())
+
+    # PCA feature correlation with target Class
+    corrs = cc_df.corr()["Class"].drop("Class").sort_values()
+
+    return {
+        "total_transactions": total,
+        "fraud_transactions": fraud,
+        "legitimate_transactions": legit,
+        "fraud_rate": round(fraud_rate, 4),
+        "total_amount": round(total_amt, 2),
+        "fraud_amount": round(fraud_amt, 2),
+        "legit_amount": round(legit_amt, 2),
+        "mean_amount": round(mean_amt, 2),
+        "mean_fraud_amount": round(mean_fraud_amt, 2),
+        "mean_legit_amount": round(mean_legit_amt, 2),
+        "median_fraud_amount": round(median_fraud_amt, 2),
+        "median_legit_amount": round(median_legit_amt, 2),
+        "correlations": corrs.to_dict(),
+        "top_negative_features": corrs.head(5).to_dict(),
+        "top_positive_features": corrs.tail(5).sort_values(ascending=False).to_dict(),
+    }
+
+
+def compare_fraud_datasets(df_retail: pd.DataFrame, cc_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generates a formal comparative benchmark table between:
+    - Primary Dataset (e-Commerce / Retail transactions, 1.85M records)
+    - Credit Card PCA Dataset (European Banking, 284K records)
+    """
+    kpis_retail = calculate_kpis(df_retail)
+    kpis_cc = get_creditcard_metrics(cc_df)
+
+    rows = [
+        {"Dimension": "Dataset Title", "Primary Dataset (archive (8).zip)": "Financial Fraud Train/Test", "Credit Card Dataset (creditcard.csv)": "Credit Card Fraud Detection (Kaggle/ULB)"},
+        {"Dimension": "Domain / Context", "Primary Dataset (archive (8).zip)": "US Retail & Online Merchants (2019-2020)", "Credit Card Dataset (creditcard.csv)": "European Cardholders (2-Day Swipes, Sept 2013)"},
+        {"Dimension": "Total Volume", "Primary Dataset (archive (8).zip)": f"{kpis_retail['total_transactions']:,}", "Credit Card Dataset (creditcard.csv)": f"{kpis_cc['total_transactions']:,}"},
+        {"Dimension": "Historical Fraud Count", "Primary Dataset (archive (8).zip)": f"{kpis_retail['fraud_transactions']:,}", "Credit Card Dataset (creditcard.csv)": f"{kpis_cc['fraud_transactions']:,}"},
+        {"Dimension": "Baseline Fraud Rate", "Primary Dataset (archive (8).zip)": f"{kpis_retail['fraud_rate']:.3f}%", "Credit Card Dataset (creditcard.csv)": f"{kpis_cc['fraud_rate']:.3f}%"},
+        {"Dimension": "Mean Legit Ticket", "Primary Dataset (archive (8).zip)": f"${kpis_retail['avg_legit_amount']:.2f}", "Credit Card Dataset (creditcard.csv)": f"${kpis_cc['mean_legit_amount']:.2f}"},
+        {"Dimension": "Mean Fraud Ticket", "Primary Dataset (archive (8).zip)": f"${kpis_retail['avg_fraud_amount']:.2f}", "Credit Card Dataset (creditcard.csv)": f"${kpis_cc['mean_fraud_amount']:.2f}"},
+        {"Dimension": "Disparity Ratio", "Primary Dataset (archive (8).zip)": f"{kpis_retail['amount_fraud_ratio']:.2f}x (Higher fraud tickets)", "Credit Card Dataset (creditcard.csv)": f"{kpis_cc['mean_fraud_amount']/kpis_cc['mean_legit_amount']:.2f}x (Modest ticket difference)"},
+        {"Dimension": "Feature Representation", "Primary Dataset (archive (8).zip)": "Domain attributes (Category, Merchant, Geo Lat/Long, DOB)", "Credit Card Dataset (creditcard.csv)": "PCA Dimensionality Reduced (V1 to V28) + Time, Amount"},
+        {"Dimension": "Primary Detection Vector", "Primary Dataset (archive (8).zip)": "Nocturnal window, Category velocity, Geo distance", "Credit Card Dataset (creditcard.csv)": "PCA subspace anomalies (V14, V17, V12 negative separation)"},
+    ]
+    return pd.DataFrame(rows)

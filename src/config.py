@@ -20,10 +20,12 @@ REPORTS_DIR = DATA_DIR / "reports"
 # Raw Data Files
 RAW_TRAIN_FILE = RAW_DATA_DIR / "fraudTrain.csv"
 RAW_TEST_FILE = RAW_DATA_DIR / "fraudTest.csv"
+RAW_CREDITCARD_FILE = BASE_DIR / "creditcard.csv"
 
 # Processed Data Files
 PROCESSED_PARQUET_FILE = PROCESSED_DATA_DIR / "fraud_data.parquet"
 PROCESSED_SAMPLE_FILE = PROCESSED_DATA_DIR / "fraud_sample_100k.parquet"
+PROCESSED_CREDITCARD_FILE = PROCESSED_DATA_DIR / "creditcard.parquet"
 BUSINESS_INSIGHTS_JSON = PROCESSED_DATA_DIR / "business_insights.json"
 
 # Unnecessary / PII columns to remove for public analytics
