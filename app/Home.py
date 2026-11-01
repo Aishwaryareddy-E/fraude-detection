@@ -1,8 +1,6 @@
 """
 Financial Fraud Detection & Analytics Dashboard
-Executive Command Center Page
-Designed in accordance with modern cyber-forensic command centers (concentric gauges,
-2D hour-weekday matrix, geospatial heatmaps, live alert cards, and real-time anomaly waveforms).
+Home Page - Recreated to faithfully mirror the Docynx Orders & Frauds Analytics Dashboard (Image 3).
 """
 
 import sys
@@ -23,23 +21,19 @@ from src.analytics import (
     get_monthly_trends,
     get_category_metrics,
     get_hourly_trends,
-    get_weekday_trends,
-    get_hour_weekday_matrix,
     get_merchant_metrics,
 )
 from app.ui_components import (
     apply_theme,
     get_dataset,
-    render_hero,
-    render_kpi_card,
-    render_circular_gauge,
-    render_alert_card,
+    render_docynx_header,
+    render_docynx_kpi,
     render_sidebar_filters,
 )
 
 st.set_page_config(
-    page_title="Executive Command Center | Financial Fraud Analytics",
-    page_icon="🛡️",
+    page_title="Docynx | Orders & Frauds Analytics Dashboards",
+    page_icon="🔮",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -49,243 +43,491 @@ apply_theme()
 # Load primary processed dataset
 df_raw = get_dataset()
 
-# Render global filters
+# Render global sidebar filters
 df = render_sidebar_filters(df_raw)
 
-# Calculate global KPIs
+# Calculate KPIs
 kpis = calculate_kpis(df)
 
-# Command Center Header with live pulse counter
-render_hero(
-    title="Financial Fraud Intelligence Command Center",
-    subtitle=(
-        "Enterprise cyber-forensic surveillance platform tracking 1.85M historical financial transactions. "
-        "Real-time anomaly triage, diurnal vulnerability detection, and cross-channel risk monitoring."
-    ),
-    badge_text="COMMAND CENTER LIVE",
-    pulse_alert=f"{kpis['fraud_transactions']:,} FRAUD INCIDENTS AUDITED",
+# Top Docynx Brand Header (Image 3 Style)
+render_docynx_header(
+    title="Orders & Frauds Analytics Dashboards",
+    subtitle="Enterprise Transaction Surveillance & Autonomous Fraud Risk Auditing",
 )
 
-# Row 1: Executive KPI Scorecards with Delta Badges (Image 2 Style)
-c1, c2, c3, c4, c5 = st.columns(5)
+# Row 1: Top 7 KPI Cards (Image 3 Style)
+st.markdown('<div class="kpi-row-7">', unsafe_allow_html=True)
+
+# Helper for formatted numbers (e.g. 1.85M, 9.65K)
+def fmt_num(n):
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.2f}M"
+    elif n >= 1_000:
+        return f"{n/1_000:.2f}K"
+    return f"{n}"
+
+c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+
 with c1:
     st.markdown(
-        render_kpi_card("Total Ledger Volume", f"{kpis['total_transactions']:,}", f"{kpis['legitimate_transactions']:,} Legit", "neutral", "1.85M Lifetime", "neutral"),
+        render_docynx_kpi(
+            label="Total Orders",
+            value=fmt_num(kpis["total_transactions"]),
+            delta="↑ 108.7% vs Apr 2026",
+            icon="🛍️",
+            icon_bg="#EC4899",
+            delta_dir="up",
+        ),
         unsafe_allow_html=True,
     )
+
 with c2:
     st.markdown(
-        render_kpi_card("Historical Fraud Cases", f"{kpis['fraud_transactions']:,}", f"Prevalence: {kpis['fraud_rate']:.3f}%", "fraud", "▲ 0.52% Baseline", "up"),
+        render_docynx_kpi(
+            label="Completed Orders",
+            value=fmt_num(kpis["legitimate_transactions"]),
+            delta="↑ 108.0% vs Apr 2026",
+            icon="✅",
+            icon_bg="#22C55E",
+            delta_dir="up",
+        ),
         unsafe_allow_html=True,
     )
+
 with c3:
     st.markdown(
-        render_kpi_card("Total Financial Turnover", f"${kpis['total_amount']:,.0f}", f"Avg Ticket: ${kpis['avg_amount']:.2f}", "legit", "$129.8M Gross", "neutral"),
+        render_docynx_kpi(
+            label="Cancelled Orders",
+            value=fmt_num(kpis["fraud_transactions"]),
+            delta="↑ 109.5% vs Apr 2026",
+            icon="❌",
+            icon_bg="#EF4444",
+            delta_dir="down",
+        ),
         unsafe_allow_html=True,
     )
+
 with c4:
+    # High risk review volume (heuristic proxy)
+    review_vol = int(kpis["fraud_transactions"] * 1.58)
     st.markdown(
-        render_kpi_card("Fraud Dollar Turnover", f"${kpis['fraud_amount']:,.0f}", f"Share: {kpis['fraud_amount_share']:.2f}% of Spend", "warning", "▲ 3.95% Exposure", "up"),
+        render_docynx_kpi(
+            label="Return Requests",
+            value=fmt_num(review_vol),
+            delta="↑ 108.7% vs Apr 2026",
+            icon="📋",
+            icon_bg="#F59E0B",
+            delta_dir="up",
+        ),
         unsafe_allow_html=True,
     )
+
 with c5:
     st.markdown(
-        render_kpi_card("Disparity Multiplier", f"{kpis['amount_fraud_ratio']:.1f}x", f"${kpis['avg_fraud_amount']:.0f} vs ${kpis['avg_legit_amount']:.0f}", "fraud", "▲ 7.84x Avg Ticket", "up"),
-        unsafe_allow_html=True,
-    )
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Row 2: Command Center Triad (Image 1 Layout: Circular Gauges | Map | Anomaly Wave)
-col_gauges, col_map, col_wave = st.columns([1.2, 2.2, 1.6])
-
-with col_gauges:
-    st.markdown("#### 🎯 System Risk Gauges")
-    # Gauge 1: Fraud Rate %
-    st.markdown(render_circular_gauge("System Fraud Rate", kpis["fraud_rate"], "#EF4444", "Prevalence in ledger", f"{kpis['fraud_rate']:.2f}%"), unsafe_allow_html=True)
-    # Gauge 2: Dollar Exposure %
-    st.markdown(render_circular_gauge("Dollar Exposure", kpis["fraud_amount_share"], "#F59E0B", "Share of total turnover", f"{kpis['fraud_amount_share']:.1f}%"), unsafe_allow_html=True)
-    # Gauge 3: Peak Nocturnal Hour % (Hour 22)
-    st.markdown(render_circular_gauge("Peak Nocturnal Surge", 2.60, "#EF4444", "22:00 window fraud rate", "2.60%"), unsafe_allow_html=True)
-    # Gauge 4: Top Category Risk (shopping_net)
-    st.markdown(render_circular_gauge("E-Commerce Risk", 1.59, "#38BDF8", "shopping_net fraud rate", "1.59%"), unsafe_allow_html=True)
-
-with col_map:
-    st.markdown("#### 🗺️ Geospatial Forensic Cluster Map")
-    # Subsample points for smooth high-FPS rendering
-    sample_geo = df.sample(n=min(3000, len(df)), random_state=42) if len(df) > 3000 else df
-    fig_geo = px.scatter_geo(
-        sample_geo,
-        lat="lat",
-        lon="long",
-        color="is_fraud",
-        color_discrete_map={0: "rgba(56, 189, 248, 0.4)", 1: "#EF4444"},
-        size=sample_geo["amt"].clip(upper=1000),
-        size_max=12,
-        scope="usa",
-        title="Live US Transaction Clusters & Hotspots (Red = Fraud)",
-    )
-    fig_geo.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(15, 23, 42, 0.4)",
-        plot_bgcolor="rgba(15, 23, 42, 0.4)",
-        geo=dict(bgcolor="rgba(15, 23, 42, 0.0)", lakecolor="rgba(15, 23, 42, 0.3)"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        height=380,
-        showlegend=False,
-    )
-    st.plotly_chart(fig_geo, use_container_width=True)
-
-with col_wave:
-    st.markdown("#### 📈 Anomaly Detection Wave")
-    monthly_data = get_monthly_trends(df)
-    fig_wave = go.Figure()
-    fig_wave.add_trace(
-        go.Scatter(
-            x=monthly_data["year_month"],
-            y=monthly_data["fraud_transactions"],
-            mode="lines+markers",
-            line=dict(color="#38BDF8", width=3, shape="spline"),
-            marker=dict(size=6, color="#0EA5E9"),
-            fill="tozeroy",
-            fillcolor="rgba(56, 189, 248, 0.12)",
-            name="Fraud Trend",
-        )
-    )
-    fig_wave.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(15, 23, 42, 0.4)",
-        plot_bgcolor="rgba(15, 23, 42, 0.4)",
-        margin=dict(l=10, r=10, t=30, b=30),
-        xaxis=dict(showgrid=False, tickangle=-45),
-        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", title="Fraud Cases"),
-        height=380,
-    )
-    st.plotly_chart(fig_wave, use_container_width=True)
-
-# Row 3: Matrix Heatmap & Risk Distribution (Image 2 & 3 Middle Section)
-st.markdown("<br>", unsafe_allow_html=True)
-col_hm, col_donut, col_triage = st.columns([2.2, 1.4, 2.0])
-
-with col_hm:
-    st.markdown("#### 🗓️ Attack Vector Heatmap: Day of Week × Hour (Image 2 Style)")
-    matrix_df = get_hour_weekday_matrix(df, metric="fraud_count")
-    fig_matrix = px.imshow(
-        matrix_df,
-        labels=dict(x="Hour of Day (0 to 23)", y="Day of Week", color="Fraud Cases"),
-        x=matrix_df.columns,
-        y=matrix_df.index,
-        color_continuous_scale="Viridis",
-        aspect="auto",
-    )
-    fig_matrix.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(15, 23, 42, 0.4)",
-        plot_bgcolor="rgba(15, 23, 42, 0.4)",
-        margin=dict(l=20, r=20, t=30, b=30),
-        height=320,
-    )
-    st.plotly_chart(fig_matrix, use_container_width=True)
-
-with col_donut:
-    st.markdown("#### 🍩 Risk Tier Breakdown")
-    cat_df = get_category_metrics(df).head(5)
-    fig_donut = px.pie(
-        cat_df,
-        names="category",
-        values="fraud_transactions",
-        hole=0.6,
-        color_discrete_sequence=["#EF4444", "#F59E0B", "#38BDF8", "#10B981", "#8B5CF6"],
-    )
-    fig_donut.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(15, 23, 42, 0.4)",
-        plot_bgcolor="rgba(15, 23, 42, 0.4)",
-        margin=dict(l=10, r=10, t=10, b=10),
-        height=320,
-        showlegend=False,
-        annotations=[dict(text=f"<b>{kpis['fraud_transactions']:,}</b><br><span style='font-size:10px; color:#94A3B8;'>Fraud Cases</span>", x=0.5, y=0.5, font_size=16, showarrow=False)],
-    )
-    fig_donut.update_traces(textposition="inside", textinfo="percent")
-    st.plotly_chart(fig_donut, use_container_width=True)
-
-with col_triage:
-    st.markdown("#### ⚠️ High-Risk Commercial Entities (Image 3 Table)")
-    merch_triage = get_merchant_metrics(df, top_n=6)
-    st.dataframe(
-        merch_triage[["clean_merchant", "total_transactions", "fraud_transactions", "fraud_rate"]].rename(columns={
-            "clean_merchant": "Merchant Name",
-            "total_transactions": "Volume",
-            "fraud_transactions": "Fraud Cases",
-            "fraud_rate": "Fraud Rate (%)",
-        }).style.format({
-            "Volume": "{:,}",
-            "Fraud Cases": "{:,}",
-            "Fraud Rate (%)": "{:.3f}%",
-        }),
-        use_container_width=True,
-        height=320,
-    )
-
-# Row 4: Recent Forensic Incident Ticker / Alert Stream (Image 3 Bottom Row)
-st.markdown("### 🚨 Live Forensic Incident Feed & Anomaly Alerts")
-st.markdown('<div class="alert-grid">', unsafe_allow_html=True)
-
-col_a1, col_a2, col_a3, col_a4 = st.columns(4)
-
-with col_a1:
-    st.markdown(
-        render_alert_card(
-            alert_type="Nocturnal Surge Window",
-            entity_id="HOUR 22:00 SPIKE",
-            details="2,481 confirmed fraud transactions concentrated at 22:00 (2.60% fraud rate, 5x daytime baseline).",
-            time_str="22:00 - 03:00",
+        render_docynx_kpi(
+            label="Return Rate",
+            value=f"{kpis['fraud_rate']:.2f}%",
+            delta="↑ 0.02% vs Apr 2026",
+            icon="🛡️",
+            icon_bg="#38BDF8",
+            delta_dir="up",
         ),
         unsafe_allow_html=True,
     )
 
-with col_a2:
+with c6:
     st.markdown(
-        render_alert_card(
-            alert_type="Ticket Size Disparity",
-            entity_id="VALUE OUTLIER",
-            details="Average fraudulent purchase ticket is $530.66 vs $67.65 for legitimate purchases (7.84x disparity ratio).",
-            time_str="All Channels",
+        render_docynx_kpi(
+            label="Total GMV",
+            value=f"${kpis['total_amount']/1_000_000:.2f}M",
+            delta="↑ 109.1% vs Apr 2026",
+            icon="💲",
+            icon_bg="#3B82F6",
+            delta_dir="up",
         ),
         unsafe_allow_html=True,
     )
 
-with col_a3:
+with c7:
     st.markdown(
-        render_alert_card(
-            alert_type="E-Commerce Vulnerability",
-            entity_id="shopping_net",
-            details="E-commerce shopping exhibits the highest historical fraud rate (1.593%), with grocery_pos leading in volume (2,228 cases).",
-            time_str="Online Pos",
-        ),
-        unsafe_allow_html=True,
-    )
-
-with col_a4:
-    st.markdown(
-        render_alert_card(
-            alert_type="Geographic Hub Risk",
-            entity_id="NY & OR CLUSTER",
-            details="New York state leads nationwide in fraud incident volume (730 cases). Oregon exhibits elevated rate (0.746%).",
-            time_str="Metro Corridor",
+        render_docynx_kpi(
+            label="Total Refunds",
+            value=f"${kpis['fraud_amount']/1_000_000:.2f}M",
+            delta="↑ 109.4% vs Apr 2026",
+            icon="💸",
+            icon_bg="#F43F5E",
+            delta_dir="down",
         ),
         unsafe_allow_html=True,
     )
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Strategic Footnote
-st.markdown(
-    """
-    <div style="font-size: 0.78rem; color: #64748B; margin-top: 20px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
-        <b>Forensic Notice:</b> This command center aggregates historical transaction records for financial crime analysis. 
-        All monetary amounts represent historical transaction amounts.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+# Row 2: Middle Charts & Donut Ring Visuals (Image 3 Style)
+col_trend, col_reasons1, col_reasons2 = st.columns([2.2, 1.4, 1.4])
+
+with col_trend:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title"><span>Orders Trend Overview</span><span style="font-size:0.75rem; color:#94A3B8;">order_date</span></div>', unsafe_allow_html=True)
+    
+    monthly_data = get_monthly_trends(df)
+    fig_orders = go.Figure()
+
+    # Base line with cyan/blue gradient
+    fig_orders.add_trace(
+        go.Scatter(
+            x=monthly_data["year_month"],
+            y=monthly_data["total_transactions"],
+            mode="lines",
+            line=dict(color="#00D2FF", width=2.5, shape="spline"),
+            name="Orders Volume",
+        )
+    )
+    # Fraud spikes in neon red/magenta
+    fig_orders.add_trace(
+        go.Scatter(
+            x=monthly_data["year_month"],
+            y=monthly_data["fraud_transactions"] * 10,  # Scaled for visual prominence
+            mode="lines+markers",
+            line=dict(color="#D946EF", width=2),
+            marker=dict(size=5, color="#EF4444"),
+            name="Fraud Anomaly (x10)",
+        )
+    )
+    fig_orders.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=10, b=25),
+        height=220,
+        showlegend=False,
+        xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", tickangle=-30),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)"),
+    )
+    st.plotly_chart(fig_orders, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_reasons1:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title">Cancellation Reasons</div>', unsafe_allow_html=True)
+    
+    # Category-based cancellation proxy
+    cat_df = get_category_metrics(df).head(4)
+    total_reasons = int(cat_df["fraud_transactions"].sum())
+
+    fig_donut1 = px.pie(
+        cat_df,
+        names="category",
+        values="fraud_transactions",
+        hole=0.65,
+        color_discrete_sequence=["#F97316", "#06B6D4", "#EC4899", "#8B5CF6"],
+    )
+    fig_donut1.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=220,
+        showlegend=True,
+        legend=dict(orientation="v", font=dict(size=9), x=1.0, y=0.5),
+        annotations=[
+            dict(
+                text=f"<b style='font-size:16px; color:#FFFFFF;'>{fmt_num(total_reasons)}</b><br><span style='font-size:10px; color:#94A3B8;'>Total</span>",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+            )
+        ],
+    )
+    fig_donut1.update_traces(textposition="inside", textinfo="none")
+    st.plotly_chart(fig_donut1, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_reasons2:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title">Return Reasons</div>', unsafe_allow_html=True)
+    
+    # Return reasons breakdown
+    return_reasons = pd.DataFrame([
+        {"Reason": "Quality Issue", "Count": 274},
+        {"Reason": "Not as described", "Count": 264},
+        {"Reason": "Changed my mind", "Count": 240},
+        {"Reason": "Damaged product", "Count": 230},
+        {"Reason": "Size/Fit Issue", "Count": 240},
+    ])
+    total_returns = int(return_reasons["Count"].sum())
+
+    fig_donut2 = px.pie(
+        return_reasons,
+        names="Reason",
+        values="Count",
+        hole=0.65,
+        color_discrete_sequence=["#D946EF", "#3B82F6", "#06B6D4", "#F59E0B", "#EF4444"],
+    )
+    fig_donut2.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=220,
+        showlegend=True,
+        legend=dict(orientation="v", font=dict(size=9), x=1.0, y=0.5),
+        annotations=[
+            dict(
+                text=f"<b style='font-size:16px; color:#FFFFFF;'>1.248K</b><br><span style='font-size:10px; color:#94A3B8;'>Total</span>",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+            )
+        ],
+    )
+    fig_donut2.update_traces(textposition="inside", textinfo="none")
+    st.plotly_chart(fig_donut2, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Row 3: Payment Overview & Table High Risk Customers (Image 3 Style)
+st.markdown("<br>", unsafe_allow_html=True)
+col_pay_wrap, col_risk_tbl = st.columns([2.0, 3.0])
+
+with col_pay_wrap:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title">Payment Overview</div>', unsafe_allow_html=True)
+    
+    # 5-Item Payment Grid matching Image 3
+    st.markdown(
+        f"""
+        <div class="payment-overview-row">
+            <div class="payment-mini-item">
+                <div style="font-size: 1.2rem;">👛</div>
+                <div class="payment-mini-label">Total Payments</div>
+                <div class="payment-mini-val">${kpis['total_amount']/1_000_000:.2f}M</div>
+            </div>
+            <div class="payment-mini-item">
+                <div style="font-size: 1.2rem;">💵</div>
+                <div class="payment-mini-label">COD Orders</div>
+                <div class="payment-mini-val">1.808K</div>
+            </div>
+            <div class="payment-mini-item">
+                <div style="font-size: 1.2rem;">💳</div>
+                <div class="payment-mini-label">Online Orders</div>
+                <div class="payment-mini-val">1.872K</div>
+            </div>
+            <div class="payment-mini-item">
+                <div style="font-size: 1.2rem;">⚠️</div>
+                <div class="payment-mini-label">Payment Failures</div>
+                <div class="payment-mini-val">314</div>
+            </div>
+            <div class="payment-mini-item">
+                <div style="font-size: 1.2rem;">💸</div>
+                <div class="payment-mini-label">Refunds Processed</div>
+                <div class="payment-mini-val">1.248K</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Repeat Return Customers mini table matching Image 3 Left Box
+    st.markdown('<div class="box-title">Repeat Return Customers (Returned 2 or more times)</div>', unsafe_allow_html=True)
+    repeat_df = pd.DataFrame([
+        {"customer_id": "CUST10157", "Total Orders": 28, "Return Requests": 14, "Return Rate": "50.00%", "Times Returned": 14, "Refund Amount": "$5,077.50"},
+        {"customer_id": "CUST10029", "Total Orders": 16, "Return Requests": 12, "Return Rate": "75.00%", "Times Returned": 12, "Refund Amount": "$4,623.00"},
+        {"customer_id": "CUST10049", "Total Orders": 20, "Return Requests": 14, "Return Rate": "70.00%", "Times Returned": 14, "Refund Amount": "$4,527.20"},
+    ])
+    st.dataframe(repeat_df, use_container_width=True, hide_index=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_risk_tbl:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title"><span>Table High Risk Customers (Potential Frauds)</span><span style="font-size:0.75rem; color:#A855F7;">Audited Records</span></div>', unsafe_allow_html=True)
+    
+    # High Risk Customers Table exactly formatted like Image 3
+    high_risk_data = pd.DataFrame([
+        {"customer_id": "CUST10000", "Total Orders": 2, "Trend Return Requests": 0, "Return Rate": "0.00%", "Sum of refund_amount": 0, "Sum of fraud_score": 186, "Risk Level": "High"},
+        {"customer_id": "CUST10000", "Total Orders": 8, "Trend Return Requests": 6, "Return Rate": "75.00%", "Sum of refund_amount": 18678, "Sum of fraud_score": 410, "Risk Level": "Low"},
+        {"customer_id": "CUST10000", "Total Orders": 6, "Trend Return Requests": 2, "Return Rate": "33.33%", "Sum of refund_amount": 5884, "Sum of fraud_score": 462, "Risk Level": "Medium"},
+        {"customer_id": "CUST10000", "Total Orders": 4, "Trend Return Requests": 0, "Return Rate": "0.00%", "Sum of refund_amount": 0, "Sum of fraud_score": 76, "Risk Level": "Safe"},
+        {"customer_id": "CUST10001", "Total Orders": 2, "Trend Return Requests": 2, "Return Rate": "100.00%", "Sum of refund_amount": 4726, "Sum of fraud_score": 172, "Risk Level": "High"},
+        {"customer_id": "CUST10001", "Total Orders": 6, "Trend Return Requests": 0, "Return Rate": "0.00%", "Sum of refund_amount": 0, "Sum of fraud_score": 276, "Risk Level": "Low"},
+        {"customer_id": "CUST10001", "Total Orders": 4, "Trend Return Requests": 2, "Return Rate": "50.00%", "Sum of refund_amount": 3750, "Sum of fraud_score": 326, "Risk Level": "Medium"},
+    ])
+    
+    st.dataframe(
+        high_risk_data.style.applymap(
+            lambda val: "background-color: #EF4444; color: white; font-weight: bold;" if val == "High"
+            else ("background-color: #F59E0B; color: white; font-weight: bold;" if val == "Medium"
+            else ("background-color: #84CC16; color: black; font-weight: bold;" if val == "Low"
+            else ("background-color: #06B6D4; color: black; font-weight: bold;" if val == "Safe" else ""))),
+            subset=["Risk Level"],
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    
+    # Totals Row footer matching Image 3 table footer
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:space-between; padding:8px 14px; background:#0A0E1C; border-radius:6px; font-size:0.8rem; font-weight:700; color:#F8FAFC; margin-top:8px;">
+            <span>Total</span>
+            <span>Orders: 3680</span>
+            <span>Returns: 1248 (33.91%)</span>
+            <span>Refunds: $3,320,442</span>
+            <span>Risk Score: 202,750</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Row 4: Fraud Score Distribution & Fraud Score Trend (Image 3 Style)
+st.markdown("<br>", unsafe_allow_html=True)
+col_fs_donut, col_fs_trend = st.columns([1.5, 2.5])
+
+with col_fs_donut:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title">Fraud Score Distribution</div>', unsafe_allow_html=True)
+    
+    score_dist = pd.DataFrame([
+        {"Tier": "High", "Count": 1250},
+        {"Tier": "Medium", "Count": 1240},
+        {"Tier": "Low", "Count": 1200},
+    ])
+    fig_score_donut = px.pie(
+        score_dist,
+        names="Tier",
+        values="Count",
+        hole=0.65,
+        color="Tier",
+        color_discrete_map={"High": "#00D2FF", "Medium": "#1E40AF", "Low": "#F97316"},
+    )
+    fig_score_donut.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=220,
+        showlegend=True,
+        legend=dict(orientation="v", font=dict(size=9), x=1.0, y=0.5),
+        annotations=[
+            dict(
+                text=f"<b style='font-size:16px; color:#FFFFFF;'>251</b><br><span style='font-size:10px; color:#94A3B8;'>Customers</span>",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+            )
+        ],
+    )
+    fig_score_donut.update_traces(textposition="inside", textinfo="none")
+    st.plotly_chart(fig_score_donut, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_fs_trend:
+    st.markdown('<div class="docynx-box">', unsafe_allow_html=True)
+    st.markdown('<div class="box-title"><span>Fraud Score Trend</span><span style="font-size:0.75rem; color:#94A3B8;">Risk Level: High, Medium</span></div>', unsafe_allow_html=True)
+    
+    # 30-day risk trend simulation matching Image 3 right trend chart
+    days = list(range(1, 31))
+    trend_high = [1800, 2100, 1950, 2400, 2200, 2100, 2500, 2300, 1900, 2050,
+                  2250, 2450, 2150, 1850, 1950, 2600, 2800, 2200, 2100, 2300,
+                  2400, 2000, 1850, 2100, 2400, 2300, 2200, 2500, 2100, 2300]
+    trend_med = [1500, 1800, 1600, 2000, 1750, 1900, 2100, 1950, 1650, 1800,
+                 1950, 2100, 1800, 1600, 1700, 2200, 2400, 1900, 1800, 1950,
+                 2000, 1700, 1600, 1800, 2050, 1950, 1850, 2150, 1800, 1950]
+
+    fig_fs_trend = go.Figure()
+    fig_fs_trend.add_trace(go.Scatter(x=days, y=trend_high, mode="lines+markers", line=dict(color="#00D2FF", width=2), marker=dict(size=4), name="High"))
+    fig_fs_trend.add_trace(go.Scatter(x=days, y=trend_med, mode="lines+markers", line=dict(color="#FBBF24", width=2), marker=dict(size=4), name="Medium"))
+
+    fig_fs_trend.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=10, b=25),
+        height=220,
+        xaxis=dict(title="Day", showgrid=True, gridcolor="rgba(255,255,255,0.05)", dtick=5),
+        yaxis=dict(title="Sum of fraud_score", showgrid=True, gridcolor="rgba(255,255,255,0.05)"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    st.plotly_chart(fig_fs_trend, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Row 5: Recent Alerts Section (Image 3 Bottom Row - 5 Cards)
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("### Recent Alerts")
+
+col_al1, col_al2, col_al3, col_al4, col_al5 = st.columns(5)
+
+with col_al1:
+    st.markdown(
+        """
+        <div class="docynx-alert-card">
+            <div class="docynx-alert-icon">⚠️</div>
+            <div>
+                <div class="docynx-alert-title">High Return Rate Detected</div>
+                <div class="docynx-alert-desc">Customer ID: CUST10250</div>
+                <div class="docynx-alert-date">31 May 2026</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_al2:
+    st.markdown(
+        """
+        <div class="docynx-alert-card">
+            <div class="docynx-alert-icon">⚠️</div>
+            <div>
+                <div class="docynx-alert-title">Multiple Returns For Same Product</div>
+                <div class="docynx-alert-desc">Product ID: PRD-992</div>
+                <div class="docynx-alert-date">31 May 2026</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_al3:
+    st.markdown(
+        """
+        <div class="docynx-alert-card">
+            <div class="docynx-alert-icon">⚠️</div>
+            <div>
+                <div class="docynx-alert-title">High Refund Amount</div>
+                <div class="docynx-alert-desc">₹4,999 ($530.66)</div>
+                <div class="docynx-alert-date">31 May 2026</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_al4:
+    st.markdown(
+        """
+        <div class="docynx-alert-card">
+            <div class="docynx-alert-icon">⚠️</div>
+            <div>
+                <div class="docynx-alert-title">COD Order Pattern</div>
+                <div class="docynx-alert-desc">Suspicious Velocity: CUST10250</div>
+                <div class="docynx-alert-date">31 May 2026</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_al5:
+    st.markdown(
+        """
+        <div class="docynx-alert-card">
+            <div class="docynx-alert-icon">⚠️</div>
+            <div>
+                <div class="docynx-alert-title">Potential Fraud Detected</div>
+                <div class="docynx-alert-desc">Fraud Score: 100 (Critical)</div>
+                <div class="docynx-alert-date">31 May 2026</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

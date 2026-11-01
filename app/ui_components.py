@@ -1,7 +1,7 @@
 """
 UI components, design system, theme styling, and cached data accessors
 for the Financial Fraud Analytics Streamlit Dashboard.
-Implements the futuristic Command-Center aesthetic seen in advanced cyber forensic centers.
+Faithfully implements the Docynx Orders & Frauds Analytics Dashboards aesthetic (Image 3).
 """
 
 import sys
@@ -16,7 +16,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any
 from src.load_data import load_processed_data, load_creditcard_data
 from src.config import (
     COLOR_PRIMARY,
@@ -30,260 +30,335 @@ from src.config import (
     COLOR_MUTED,
 )
 
-# Custom CSS for executive glassmorphic financial command-center theme
-CUSTOM_CSS = """
+# Custom CSS reproducing the Docynx Dark Purple/Navy Dashboard Aesthetic (Image 3)
+DOCYNX_CSS = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-    /* Global Typography & Deep Dark Cyber Grid */
+    /* Global Typography & Deep Indigo Background */
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
     .stApp {
-        background: radial-gradient(circle at 15% 15%, #0B1120 0%, #050811 100%);
+        background-color: #070913 !important;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.12) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.10) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 50%) !important;
         color: #F8FAFC;
     }
 
-    /* Executive Command Header */
-    .command-header {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(11, 19, 43, 0.95) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.25);
-        border-radius: 16px;
-        padding: 20px 28px;
-        margin-bottom: 24px;
-        box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(16px);
+    /* Top Docynx App Navigation Bar */
+    .docynx-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
+        justify-content: space-between;
+        background: #0B0F1F;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .docynx-brand-wrap {
+        display: flex;
+        align-items: center;
         gap: 16px;
     }
-    .header-left {
-        max-width: 800px;
-    }
-    .command-title {
-        font-size: 2.1rem;
+    .docynx-logo {
+        font-size: 1.75rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+        background: linear-gradient(135deg, #D946EF 0%, #A855F7 60%, #818CF8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 4px;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
     }
-    .command-subtitle {
+    .docynx-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #F8FAFC;
+        letter-spacing: -0.01em;
+    }
+    .docynx-subtitle {
+        font-size: 0.78rem;
         color: #94A3B8;
-        font-size: 0.92rem;
-        line-height: 1.45;
     }
-    .pulse-badge {
-        display: inline-flex;
+
+    /* Top KPI Row Cards (Image 3 Style) */
+    .kpi-row-7 {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    @media (max-width: 1400px) {
+        .kpi-row-7 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 900px) {
+        .kpi-row-7 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    .docynx-kpi-card {
+        background: #0F1528;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 14px;
+        position: relative;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .docynx-kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(168, 85, 247, 0.4);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+    .kpi-header-label {
+        font-size: 0.74rem;
+        color: #94A3B8;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .kpi-val-row {
+        display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(239, 68, 68, 0.15);
-        color: #EF4444;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        padding: 6px 14px;
-        border-radius: 9999px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
-    }
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background: #EF4444;
-        border-radius: 50%;
-        box-shadow: 0 0 8px #EF4444;
-        animation: pulseAnimation 1.8s infinite;
-    }
-    @keyframes pulseAnimation {
-        0% { transform: scale(0.95); opacity: 0.7; }
-        50% { transform: scale(1.3); opacity: 1; }
-        100% { transform: scale(0.95); opacity: 0.7; }
-    }
-
-    /* KPI Metric Cards */
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 14px;
-        margin-bottom: 24px;
-    }
-    .kpi-card {
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 16px 18px;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        backdrop-filter: blur(10px);
-    }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(56, 189, 248, 0.45);
-        box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.15);
-    }
-    .kpi-card.fraud { border-left: 4px solid #EF4444; }
-    .kpi-card.legit { border-left: 4px solid #10B981; }
-    .kpi-card.neutral { border-left: 4px solid #38BDF8; }
-    .kpi-card.warning { border-left: 4px solid #F59E0B; }
-    .kpi-card.purple { border-left: 4px solid #A855F7; }
-
-    .kpi-label {
-        font-size: 0.76rem;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #94A3B8;
-        font-weight: 600;
         margin-bottom: 4px;
     }
-    .kpi-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #F8FAFC;
+    .kpi-icon-badge {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+    }
+    .kpi-main-val {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #FFFFFF;
         font-family: 'JetBrains Mono', monospace;
         letter-spacing: -0.02em;
     }
-    .kpi-delta {
-        font-size: 0.76rem;
+    .kpi-growth-delta {
+        font-size: 0.68rem;
         font-weight: 600;
-        margin-top: 4px;
+        color: #22C55E;
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
     }
-    .delta-up { color: #EF4444; }
-    .delta-down { color: #10B981; }
-    .delta-neutral { color: #38BDF8; }
+    .kpi-growth-delta.down {
+        color: #EF4444;
+    }
 
-    /* Concentric Ring Gauge Cards (Image 1 Style) */
-    .gauge-card {
-        background: rgba(15, 23, 42, 0.7);
+    /* Container Box Styling */
+    .docynx-box {
+        background: #0F1528;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
+        border-radius: 12px;
         padding: 16px;
+        height: 100%;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+    .box-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #F8FAFC;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 12px;
-        backdrop-filter: blur(8px);
-        transition: border-color 0.2s ease;
-    }
-    .gauge-card:hover {
-        border-color: rgba(56, 189, 248, 0.35);
-    }
-    .gauge-circle {
-        position: relative;
-        width: 68px;
-        height: 68px;
-        flex-shrink: 0;
-    }
-    .gauge-info {
-        flex-grow: 1;
-    }
-    .gauge-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #F1F5F9;
-        margin-bottom: 2px;
-    }
-    .gauge-desc {
-        font-size: 0.76rem;
-        color: #94A3B8;
+        justify-content: space-between;
     }
 
-    /* Live Incident Alerts Grid (Image 3 Style) */
-    .alert-grid {
+    /* Payment Overview Horizontal Mini-cards */
+    .payment-overview-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 14px;
-        margin-top: 14px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        background: #0A0E1C;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+    .payment-mini-item {
+        text-align: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 0 8px;
+    }
+    .payment-mini-item:last-child {
+        border-right: none;
+    }
+    .payment-mini-label {
+        font-size: 0.72rem;
+        color: #94A3B8;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+    .payment-mini-val {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Risk Badges (Image 3 Table Style) */
+    .risk-pill {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: center;
+    }
+    .risk-pill.high {
+        background: #EF4444;
+        color: #FFFFFF;
+    }
+    .risk-pill.medium {
+        background: #F59E0B;
+        color: #FFFFFF;
+    }
+    .risk-pill.low {
+        background: #84CC16;
+        color: #0F172A;
+    }
+    .risk-pill.safe {
+        background: #06B6D4;
+        color: #0F172A;
+    }
+
+    /* Bottom Alert Cards (Image 3 Style) */
+    .docynx-alert-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
         margin-bottom: 24px;
     }
-    .alert-card {
-        background: rgba(239, 68, 68, 0.07);
-        border: 1px solid rgba(239, 68, 68, 0.25);
-        border-radius: 12px;
+    @media (max-width: 1200px) {
+        .docynx-alert-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 768px) {
+        .docynx-alert-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .docynx-alert-card {
+        background: #141026;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        border-radius: 10px;
         padding: 14px 16px;
-        position: relative;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .alert-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(239, 68, 68, 0.2);
-        border-color: rgba(239, 68, 68, 0.5);
-    }
-    .alert-header {
         display: flex;
-        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+    }
+    .docynx-alert-icon {
+        color: #EF4444;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+    .docynx-alert-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #F8FAFC;
+        margin-bottom: 2px;
+    }
+    .docynx-alert-desc {
+        font-size: 0.72rem;
+        color: #CBD5E1;
+        line-height: 1.35;
+    }
+    .docynx-alert-date {
+        font-size: 0.68rem;
+        color: #94A3B8;
+        margin-top: 4px;
+    }
+
+    /* Sidebar Navigation (Image 3 Style) */
+    section[data-testid="stSidebar"] {
+        background-color: #070914 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-alert-box {
+        background: #190F24;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 10px;
+        padding: 14px;
+        margin-top: 24px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+    }
+    .sidebar-alert-label {
+        font-size: 0.76rem;
+        color: #F87171;
+        font-weight: 700;
+        display: flex;
         align-items: center;
+        justify-content: center;
+        gap: 6px;
         margin-bottom: 6px;
     }
-    .alert-type {
-        font-size: 0.74rem;
-        font-weight: 700;
+    .sidebar-alert-val {
+        font-size: 2.1rem;
+        font-weight: 900;
         color: #EF4444;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-    }
-    .alert-id {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #F8FAFC;
+        letter-spacing: -0.02em;
     }
-    .alert-details {
-        font-size: 0.78rem;
-        color: #CBD5E1;
-        margin-top: 4px;
-        line-height: 1.4;
-    }
-
-    /* Badges & Chips */
-    .chip {
+    .sidebar-alert-btn {
         display: inline-block;
-        padding: 3px 10px;
-        border-radius: 9999px;
-        font-size: 0.74rem;
+        width: 100%;
+        margin-top: 10px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #C026D3;
+        background: transparent;
+        color: #E879F9;
+        font-size: 0.72rem;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        text-align: center;
+        text-decoration: none;
     }
-    .chip-critical {
-        background: rgba(239, 68, 68, 0.2);
-        color: #F87171;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-    .chip-elevated {
-        background: rgba(245, 158, 11, 0.2);
-        color: #FBBF24;
-        border: 1px solid rgba(245, 158, 11, 0.4);
-    }
-    .chip-safe {
-        background: rgba(16, 185, 129, 0.2);
-        color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.4);
-    }
-    .chip-neutral {
-        background: rgba(56, 189, 248, 0.15);
-        color: #38BDF8;
-        border: 1px solid rgba(56, 189, 248, 0.3);
+    .sidebar-alert-btn:hover {
+        background: rgba(192, 38, 211, 0.15);
     }
 
-    /* Sidebar adjustments */
-    section[data-testid="stSidebar"] {
-        background-color: #080D1A !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    /* Active Sidebar Item Highlight */
+    .sidebar-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: #94A3B8;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .sidebar-nav-item.active {
+        background: linear-gradient(135deg, #9333EA 0%, #C026D3 100%);
+        color: #FFFFFF;
+        box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
     }
 </style>
 """
 
 
 def apply_theme():
-    """Injects high-end financial styling into the active Streamlit page."""
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    """Injects Docynx styling into the active Streamlit page."""
+    st.markdown(DOCYNX_CSS, unsafe_allow_html=True)
 
 
 @st.cache_data(show_spinner="Loading primary transaction database...", ttl=3600)
@@ -298,30 +373,24 @@ def get_creditcard_dataset() -> pd.DataFrame:
     return load_creditcard_data()
 
 
-def render_hero(title: str, subtitle: str, badge_text: str = "COMMAND CENTER", pulse_alert: Optional[str] = None):
-    """Renders the executive command center hero header."""
-    pulse_html = ""
-    if pulse_alert:
-        pulse_html = f"""
-        <div class="pulse-badge">
-            <div class="pulse-dot"></div>
-            <span>{pulse_alert}</span>
-        </div>
-        """
-
+def render_docynx_header(title: str = "Orders & Frauds Analytics Dashboards", subtitle: str = "Real-Time Transaction Intelligence & Fraud Monitoring"):
+    """
+    Renders the Docynx Brand Header with Glowing Purple Tag (Image 3 Style).
+    """
     st.markdown(
         f"""
-        <div class="command-header">
-            <div class="header-left">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                    <span class="chip chip-neutral">{badge_text}</span>
-                    <span style="color: #64748B; font-size: 0.8rem;">1,852,394 Primary Records + 284,807 European Records</span>
+        <div class="docynx-header">
+            <div class="docynx-brand-wrap">
+                <div class="docynx-logo">Docynx</div>
+                <div>
+                    <div class="docynx-title">{title}</div>
+                    <div class="docynx-subtitle">{subtitle}</div>
                 </div>
-                <div class="command-title">{title}</div>
-                <div class="command-subtitle">{subtitle}</div>
             </div>
-            <div>
-                {pulse_html}
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #C084FC; padding: 4px 12px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">
+                    LIVE MONITORING
+                </span>
             </div>
         </div>
         """,
@@ -329,80 +398,38 @@ def render_hero(title: str, subtitle: str, badge_text: str = "COMMAND CENTER", p
     )
 
 
-def render_kpi_card(
-    label: str,
-    value: str,
-    subtext: str = "",
-    status: str = "neutral",
-    delta: str = "",
-    delta_type: str = "neutral",
-):
-    """Generates an HTML snippet for a stylized metric card with delta indicator."""
-    delta_class = f"delta-{delta_type}"
-    delta_html = f'<div class="kpi-delta {delta_class}">{delta}</div>' if delta else ""
+def render_docynx_kpi(label: str, value: str, delta: str = "↑ 108.7% vs Apr 2026", icon: str = "🛍️", icon_bg: str = "#EC4899", delta_dir: str = "up"):
+    """
+    Generates an HTML snippet for a Docynx KPI card (Image 3 Top Row).
+    """
+    delta_class = "down" if delta_dir == "down" else ""
     return f"""
-    <div class="kpi-card {status}">
-        <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{value}</div>
-        <div style="font-size: 0.78rem; color: #64748B; margin-top: 4px;">{subtext}</div>
-        {delta_html}
-    </div>
-    """
-
-
-def render_circular_gauge(label: str, percentage: float, color: str = "#38BDF8", subtext: str = "", value_override: str = ""):
-    """
-    Renders an SVG concentric circular progress gauge matching Image 1.
-    """
-    circumference = 2 * 3.14159 * 26
-    dasharray = f"{(percentage / 100) * circumference} {circumference}"
-    val_text = value_override if value_override else f"{percentage:.1f}%"
-    return f"""
-    <div class="gauge-card">
-        <div class="gauge-circle">
-            <svg viewBox="0 0 68 68" width="68" height="68">
-                <circle cx="34" cy="34" r="26" fill="transparent" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
-                <circle cx="34" cy="34" r="26" fill="transparent" stroke="{color}" stroke-width="6"
-                        stroke-dasharray="{dasharray}" stroke-linecap="round"
-                        transform="rotate(-90 34 34)" style="filter: drop-shadow(0 0 6px {color});"/>
-                <text x="34" y="38" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700" font-family="'JetBrains Mono', monospace">{val_text}</text>
-            </svg>
+    <div class="docynx-kpi-card">
+        <div class="kpi-header-label">
+            <span>{label}</span>
         </div>
-        <div class="gauge-info">
-            <div class="gauge-title">{label}</div>
-            <div class="gauge-desc">{subtext}</div>
+        <div class="kpi-val-row">
+            <div class="kpi-icon-badge" style="background: {icon_bg}25; color: {icon_bg};">
+                {icon}
+            </div>
+            <div class="kpi-main-val">{value}</div>
         </div>
-    </div>
-    """
-
-
-def render_alert_card(alert_type: str, entity_id: str, details: str, time_str: str = "Real-Time"):
-    """
-    Renders a live incident alert card matching Image 3 bottom row.
-    """
-    return f"""
-    <div class="alert-card">
-        <div class="alert-header">
-            <span class="alert-type">⚠️ {alert_type}</span>
-            <span style="font-size: 0.72rem; color: #64748B;">{time_str}</span>
-        </div>
-        <div class="alert-id">{entity_id}</div>
-        <div class="alert-details">{details}</div>
+        <div class="kpi-growth-delta {delta_class}">{delta}</div>
     </div>
     """
 
 
 def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Renders global interactive sidebar filters and returns the filtered dataframe.
+    Renders the Docynx Left Sidebar Navigation & Filter Slicers (Image 3 Style).
     """
     st.sidebar.markdown(
         """
         <div style="padding: 10px 0 16px 0;">
-            <div style="font-size: 1.15rem; font-weight: 800; color: #38BDF8; letter-spacing: -0.01em;">
-                🛡️ Fraud Intelligence
+            <div style="font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #D946EF, #A855F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Docynx
             </div>
-            <div style="font-size: 0.78rem; color: #64748B;">Multi-Tier Forensic Slicers</div>
+            <div style="font-size: 0.74rem; color: #94A3B8;">Enterprise Fraud Surveillance</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -410,7 +437,7 @@ def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
 
     # 1. Dataset Partition
     sources = ["All Historical Sources"] + sorted(list(df["source_dataset"].unique()))
-    selected_source = st.sidebar.selectbox("Data Source", sources, index=0)
+    selected_source = st.sidebar.selectbox("Data Partition", sources, index=0)
 
     # 2. Date Range Filter
     min_date = df["trans_date_trans_time"].min().date()
@@ -434,7 +461,7 @@ def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
 
     # 4. State Filter
     all_states = ["All States"] + sorted(list(df["state"].dropna().unique()))
-    selected_state = st.sidebar.selectbox("Jurisdiction", all_states, index=0)
+    selected_state = st.sidebar.selectbox("State / Region", all_states, index=0)
 
     # 5. Fraud Status Filter
     fraud_filter = st.sidebar.radio(
@@ -467,15 +494,17 @@ def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
     elif fraud_filter == "Legitimate Only":
         filtered_df = filtered_df[filtered_df["is_fraud"] == 0]
 
-    filter_pct = (len(filtered_df) / len(df)) * 100 if len(df) > 0 else 0.0
-    st.sidebar.markdown("---")
+    # Sidebar Bottom Alert Card (Image 3 Left Bottom Box: ⚠️ Potential fraud detected: 610)
+    current_fraud_count = int((filtered_df["is_fraud"] == 1).sum()) if "is_fraud" in filtered_df.columns else 0
     st.sidebar.markdown(
         f"""
-        <div style="font-size: 0.8rem; color: #94A3B8;">
-            <b>Active Ledger Window:</b><br>
-            <span style="color: #38BDF8; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
-                {len(filtered_df):,}
-            </span> / {len(df):,} ({filter_pct:.1f}%)
+        <div class="sidebar-alert-box">
+            <div class="sidebar-alert-label">
+                <span>⚠️</span> Potential fraud detected
+            </div>
+            <div class="sidebar-alert-val">{current_fraud_count:,}</div>
+            <div style="font-size: 0.70rem; color: #94A3B8; margin-top: 2px;">Confirmed Historical Incidents</div>
+            <a class="sidebar-alert-btn" href="/Transaction_Explorer" target="_self">View High Risk Customers</a>
         </div>
         """,
         unsafe_allow_html=True,
