@@ -1,0 +1,357 @@
+"""
+Analytics and KPI module for the Financial Fraud Detection & Analytics System.
+Provides calculation routines for executive KPIs, temporal trends, categorical breakdowns,
+geographic distributions, and transparent investigation indicators.
+"""
+
+import pandas as pd
+import numpy as np
+from typing import Dict, Any, List, Optional
+
+
+def calculate_kpis(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Computes all core executive transaction and fraud KPIs.
+    """
+    total_trans = int(len(df))
+    if total_trans == 0:
+        return {
+            "total_transactions": 0,
+            "fraud_transactions": 0,
+            "legitimate_transactions": 0,
+            "fraud_rate": 0.0,
+            "total_amount": 0.0,
+            "fraud_amount": 0.0,
+            "legitimate_amount": 0.0,
+            "avg_amount": 0.0,
+            "avg_fraud_amount": 0.0,
+            "avg_legit_amount": 0.0,
+            "fraud_amount_share": 0.0,
+            "amount_fraud_ratio": 0.0,
+        }
+
+    fraud_mask = df["is_fraud"] == 1
+    fraud_trans = int(fraud_mask.sum())
+    legit_trans = total_trans - fraud_trans
+    fraud_rate = (fraud_trans / total_trans) * 100.0
+
+    total_amt = float(df["amt"].sum())
+    fraud_amt = float(df.loc[fraud_mask, "amt"].sum()) if fraud_trans > 0 else 0.0
+    legit_amt = total_amt - fraud_amt
+
+    avg_amt = total_amt / total_trans
+    avg_fraud_amt = (fraud_amt / fraud_trans) if fraud_trans > 0 else 0.0
+    avg_legit_amt = (legit_amt / legit_trans) if legit_trans > 0 else 0.0
+    fraud_amt_share = (fraud_amt / total_amt * 100.0) if total_amt > 0 else 0.0
+    amount_fraud_ratio = (avg_fraud_amt / avg_legit_amt) if avg_legit_amt > 0 else 0.0
+
+    return {
+        "total_transactions": total_trans,
+        "fraud_transactions": fraud_trans,
+        "legitimate_transactions": legit_trans,
+        "fraud_rate": round(fraud_rate, 4),
+        "total_amount": round(total_amt, 2),
+        "fraud_amount": round(fraud_amt, 2),
+        "legitimate_amount": round(legit_amt, 2),
+        "avg_amount": round(avg_amt, 2),
+        "avg_fraud_amount": round(avg_fraud_amt, 2),
+        "avg_legit_amount": round(avg_legit_amt, 2),
+        "fraud_amount_share": round(fraud_amt_share, 4),
+        "amount_fraud_ratio": round(amount_fraud_ratio, 2),
+    }
+
+
+def get_monthly_trends(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes monthly volume, fraud volume, fraud rate, and amount aggregates.
+    """
+    monthly = (
+        df.groupby("year_month")
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+            fraud_amount=("amt", lambda s: float(s[df.loc[s.index, "is_fraud"] == 1].sum())),
+        )
+        .reset_index()
+    )
+    monthly["fraud_rate"] = (monthly["fraud_transactions"] / monthly["total_transactions"]) * 100.0
+    monthly["fraud_amt_share"] = (monthly["fraud_amount"] / monthly["total_amount"]) * 100.0
+    return monthly.sort_values("year_month").reset_index(drop=True)
+
+
+def get_hourly_trends(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes hourly diurnal patterns (0-23 hours).
+    """
+    hourly = (
+        df.groupby("hour")
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+        )
+        .reset_index()
+    )
+    hourly["fraud_rate"] = (hourly["fraud_transactions"] / hourly["total_transactions"]) * 100.0
+    return hourly.sort_values("hour").reset_index(drop=True)
+
+
+def get_weekday_trends(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes weekly fraud patterns ordered Monday through Sunday.
+    """
+    order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    weekday = (
+        df.groupby("day_name", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+        )
+        .reindex(order)
+        .reset_index()
+    )
+    weekday["fraud_rate"] = (weekday["fraud_transactions"] / weekday["total_transactions"]) * 100.0
+    return weekday
+
+
+def get_category_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes category-wise volume, fraud counts, fraud rates, and amounts.
+    """
+    cat = (
+        df.groupby("category", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+            fraud_amount=("amt", lambda s: float(s[df.loc[s.index, "is_fraud"] == 1].sum())),
+            avg_amount=("amt", "mean"),
+        )
+        .reset_index()
+    )
+    cat["fraud_rate"] = (cat["fraud_transactions"] / cat["total_transactions"]) * 100.0
+    cat["fraud_amount_share"] = (cat["fraud_amount"] / cat["total_amount"]) * 100.0
+    return cat.sort_values("fraud_rate", ascending=False).reset_index(drop=True)
+
+
+def get_merchant_metrics(df: pd.DataFrame, top_n: int = 15) -> pd.DataFrame:
+    """
+    Computes merchant-level statistics for top merchants by fraud volume.
+    """
+    merchant_col = "clean_merchant" if "clean_merchant" in df.columns else "merchant"
+    merchants = (
+        df.groupby(merchant_col, observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+            avg_amount=("amt", "mean"),
+        )
+        .reset_index()
+    )
+    merchants["fraud_rate"] = (merchants["fraud_transactions"] / merchants["total_transactions"]) * 100.0
+    return merchants.sort_values("fraud_transactions", ascending=False).head(top_n).reset_index(drop=True)
+
+
+def get_state_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes state-level geographic volume, fraud volume, fraud rates, and amounts.
+    """
+    state_df = (
+        df.groupby("state", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+        )
+        .reset_index()
+    )
+    state_df["fraud_rate"] = (state_df["fraud_transactions"] / state_df["total_transactions"]) * 100.0
+    return state_df.sort_values("total_transactions", ascending=False).reset_index(drop=True)
+
+
+def get_distance_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes distribution and fraud rates across customer-merchant distance tiers.
+    """
+    if "distance_bin" not in df.columns:
+        return pd.DataFrame()
+    dist = (
+        df.groupby("distance_bin", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            avg_amount=("amt", "mean"),
+        )
+        .reset_index()
+    )
+    dist["fraud_rate"] = (dist["fraud_transactions"] / dist["total_transactions"]) * 100.0
+    return dist
+
+
+def get_age_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes distribution and fraud rates across customer age brackets.
+    """
+    if "age_group" not in df.columns:
+        return pd.DataFrame()
+    age_df = (
+        df.groupby("age_group", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            avg_amount=("amt", "mean"),
+        )
+        .reset_index()
+    )
+    age_df["fraud_rate"] = (age_df["fraud_transactions"] / age_df["total_transactions"]) * 100.0
+    return age_df
+
+
+def get_amount_tier_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes volume and fraud rate across transaction value tiers.
+    """
+    if "amount_tier" not in df.columns:
+        return pd.DataFrame()
+    tier_df = (
+        df.groupby("amount_tier", observed=False)
+        .agg(
+            total_transactions=("is_fraud", "size"),
+            fraud_transactions=("is_fraud", "sum"),
+            total_amount=("amt", "sum"),
+        )
+        .reset_index()
+    )
+    tier_df["fraud_rate"] = (tier_df["fraud_transactions"] / tier_df["total_transactions"]) * 100.0
+    return tier_df
+
+
+def evaluate_investigation_rules(
+    df: pd.DataFrame,
+    amount_threshold: float = 300.0,
+    distance_threshold: float = 80.0,
+    night_start: int = 22,
+    night_end: int = 4,
+    high_risk_categories: Optional[List[str]] = None,
+) -> pd.DataFrame:
+    """
+    Transparent, heuristic business-rule indicator scanner.
+    Flags transactions meeting specific criteria for analyst triage.
+    NOTE: These are exploratory investigation flags, not confirmed fraud predictions.
+    """
+    if high_risk_categories is None:
+        high_risk_categories = ["shopping_net", "grocery_pos", "misc_net"]
+
+    data = df.copy()
+
+    # Rule 1: High Transaction Value
+    data["flag_high_amount"] = data["amt"] >= amount_threshold
+
+    # Rule 2: Unusually large customer-merchant distance
+    if "distance_km" in data.columns:
+        data["flag_high_distance"] = data["distance_km"] >= distance_threshold
+    else:
+        data["flag_high_distance"] = False
+
+    # Rule 3: Late night transaction window
+    if "hour" in data.columns:
+        data["flag_unusual_hour"] = (data["hour"] >= night_start) | (data["hour"] <= night_end)
+    else:
+        data["flag_unusual_hour"] = False
+
+    # Rule 4: High risk category
+    data["flag_high_risk_category"] = data["category"].astype(str).isin(high_risk_categories)
+
+    # Composite risk score (number of rules triggered: 0 to 4)
+    data["risk_score"] = (
+        data["flag_high_amount"].astype(int)
+        + data["flag_high_distance"].astype(int)
+        + data["flag_unusual_hour"].astype(int)
+        + data["flag_high_risk_category"].astype(int)
+    )
+
+    data["risk_level"] = pd.cut(
+        data["risk_score"],
+        bins=[-1, 0, 1, 2, 4],
+        labels=["Low", "Medium", "Elevated", "Critical"],
+    )
+
+    return data
+
+
+def generate_business_insights(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Computes data-driven business findings and analyst recommendations based strictly on dataset metrics.
+    """
+    kpis = calculate_kpis(df)
+    cat_df = get_category_metrics(df)
+    state_df = get_state_metrics(df)
+    monthly_df = get_monthly_trends(df)
+    hourly_df = get_hourly_trends(df)
+
+    # 1. Category insights
+    highest_fraud_rate_cat = cat_df.iloc[0]
+    highest_fraud_vol_cat = cat_df.sort_values("fraud_transactions", ascending=False).iloc[0]
+
+    # 2. State insights
+    highest_vol_state = state_df.sort_values("fraud_transactions", ascending=False).iloc[0]
+    # Filter states with meaningful volume (e.g. >= 5000 transactions)
+    qualified_states = state_df[state_df["total_transactions"] >= 5000]
+    highest_rate_state = (
+        qualified_states.sort_values("fraud_rate", ascending=False).iloc[0]
+        if len(qualified_states) > 0
+        else state_df.sort_values("fraud_rate", ascending=False).iloc[0]
+    )
+
+    # 3. Monthly insights
+    highest_month = monthly_df.sort_values("fraud_transactions", ascending=False).iloc[0]
+
+    # 4. Hourly insights
+    peak_hour = hourly_df.sort_values("fraud_transactions", ascending=False).iloc[0]
+
+    return {
+        "kpis": kpis,
+        "highest_fraud_rate_category": {
+            "category": str(highest_fraud_rate_cat["category"]),
+            "fraud_rate": round(float(highest_fraud_rate_cat["fraud_rate"]), 3),
+            "fraud_transactions": int(highest_fraud_rate_cat["fraud_transactions"]),
+            "total_transactions": int(highest_fraud_rate_cat["total_transactions"]),
+        },
+        "highest_fraud_vol_category": {
+            "category": str(highest_fraud_vol_cat["category"]),
+            "fraud_transactions": int(highest_fraud_vol_cat["fraud_transactions"]),
+            "total_transactions": int(highest_fraud_vol_cat["total_transactions"]),
+            "fraud_rate": round(float(highest_fraud_vol_cat["fraud_rate"]), 3),
+        },
+        "highest_fraud_volume_state": {
+            "state": str(highest_vol_state["state"]),
+            "fraud_transactions": int(highest_vol_state["fraud_transactions"]),
+            "total_transactions": int(highest_vol_state["total_transactions"]),
+            "fraud_rate": round(float(highest_vol_state["fraud_rate"]), 3),
+        },
+        "highest_fraud_rate_state": {
+            "state": str(highest_rate_state["state"]),
+            "fraud_rate": round(float(highest_rate_state["fraud_rate"]), 3),
+            "fraud_transactions": int(highest_rate_state["fraud_transactions"]),
+            "total_transactions": int(highest_rate_state["total_transactions"]),
+        },
+        "highest_fraud_month": {
+            "month": str(highest_month["year_month"]),
+            "fraud_transactions": int(highest_month["fraud_transactions"]),
+            "total_transactions": int(highest_month["total_transactions"]),
+            "fraud_rate": round(float(highest_month["fraud_rate"]), 3),
+        },
+        "peak_fraud_hour": {
+            "hour": int(peak_hour["hour"]),
+            "fraud_transactions": int(peak_hour["fraud_transactions"]),
+            "fraud_rate": round(float(peak_hour["fraud_rate"]), 3),
+        },
+        "amount_disparity": {
+            "avg_legit_amt": kpis["avg_legit_amount"],
+            "avg_fraud_amt": kpis["avg_fraud_amount"],
+            "ratio": kpis["amount_fraud_ratio"],
+        },
+    }

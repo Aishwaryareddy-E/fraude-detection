@@ -1,0 +1,56 @@
+{
+  "kpis": {
+    "total_transactions": 1852394,
+    "fraud_transactions": 9651,
+    "legitimate_transactions": 1842743,
+    "fraud_rate": 0.521,
+    "total_amount": 129785336.0,
+    "fraud_amount": 5121413.5,
+    "legitimate_amount": 124663922.5,
+    "avg_amount": 70.06,
+    "avg_fraud_amount": 530.66,
+    "avg_legit_amount": 67.65,
+    "fraud_amount_share": 3.9461,
+    "amount_fraud_ratio": 7.84
+  },
+  "highest_fraud_rate_category": {
+    "category": "shopping_net",
+    "fraud_rate": 1.593,
+    "fraud_transactions": 2219,
+    "total_transactions": 139322
+  },
+  "highest_fraud_vol_category": {
+    "category": "grocery_pos",
+    "fraud_transactions": 2228,
+    "total_transactions": 176191,
+    "fraud_rate": 1.265
+  },
+  "highest_fraud_volume_state": {
+    "state": "NY",
+    "fraud_transactions": 730,
+    "total_transactions": 119419,
+    "fraud_rate": 0.611
+  },
+  "highest_fraud_rate_state": {
+    "state": "OR",
+    "fraud_rate": 0.746,
+    "fraud_transactions": 197,
+    "total_transactions": 26408
+  },
+  "highest_fraud_month": {
+    "month": "2019-12",
+    "fraud_transactions": 592,
+    "total_transactions": 141060,
+    "fraud_rate": 0.42
+  },
+  "peak_fraud_hour": {
+    "hour": 22,
+    "fraud_transactions": 2481,
+    "fraud_rate": 2.601
+  },
+  "amount_disparity": {
+    "avg_legit_amt": 67.65,
+    "avg_fraud_amt": 530.66,
+    "ratio": 7.84
+  }
+}

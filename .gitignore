@@ -1,0 +1,36 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Large Data files (Keep git repo lightweight and compatible with GitHub file limits)
+*.csv
+data/raw/*.csv
+data/processed/*.parquet
+*.zip
+
+# Processed intermediate data (can be regenerated or tracked via git-lfs if needed)
+# Keep placeholder .gitkeep in directories
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/reports/.gitkeep
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Streamlit logs/cache
+.streamlit/
