@@ -13,8 +13,11 @@ __pycache__/
 # Large Data files (Keep git repo lightweight and compatible with GitHub file limits)
 *.csv
 data/raw/*.csv
-data/processed/*.parquet
 *.zip
+
+# Full processed data (too large for GitHub) — only samples are tracked
+data/processed/fraud_data.parquet
+data/processed/creditcard.parquet
 
 # Processed intermediate data (can be regenerated or tracked via git-lfs if needed)
 # Keep placeholder .gitkeep in directories
@@ -32,5 +35,6 @@ data/processed/*.parquet
 .DS_Store
 Thumbs.db
 
-# Streamlit logs/cache
-.streamlit/
+# Streamlit logs/cache (but NOT config.toml — that's needed for cloud deployment)
+.streamlit/secrets.toml
+.streamlit/*.log

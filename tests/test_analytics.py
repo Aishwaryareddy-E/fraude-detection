@@ -139,3 +139,43 @@ def test_get_creditcard_metrics():
     assert metrics["fraud_transactions"] == 1
     assert metrics["mean_fraud_amount"] == 200.0
     assert metrics["mean_legit_amount"] == 75.0
+
+
+def test_get_radar_profiles():
+    from src.analytics import get_radar_profiles
+    df = pd.DataFrame({
+        "amt": [50.0, 500.0],
+        "is_fraud": [0, 1],
+        "hour": [14, 22],
+        "distance_km": [10.0, 120.0],
+        "category": ["grocery_pos", "shopping_net"],
+        "is_weekend": [0, 1],
+    })
+    categories, legit_radar, fraud_radar = get_radar_profiles(df)
+    assert len(categories) == 5
+    assert len(legit_radar) == 5
+    assert len(fraud_radar) == 5
+    assert fraud_radar[0] == 100.0  # Normalized max amount
+
+
+def test_simulate_threshold_interception():
+    from src.analytics import simulate_threshold_interception
+    df = pd.DataFrame({
+        "amt": [50.0, 400.0, 20.0],
+        "is_fraud": [0, 1, 0],
+        "distance_km": [5.0, 100.0, 2.0],
+        "hour": [12, 23, 15],
+    })
+    res = simulate_threshold_interception(df, amount_cutoff=300.0, distance_cutoff=80.0, night_window_active=True)
+    assert res["fraud_caught"] == 1
+    assert res["recall_cases_pct"] == 100.0
+    assert res["fraud_dollars_caught"] == 400.0
+
+
+def test_calculate_single_transaction_risk():
+    from src.analytics import calculate_single_transaction_risk
+    # High risk case: amt=550 (+40), hour=22 (+30), category=shopping_net (+20), distance=120 (+10) -> score=100
+    res = calculate_single_transaction_risk(amt=550.0, category="shopping_net", hour=22, distance_km=120.0)
+    assert res["score"] == 100.0
+    assert res["risk_level"] == "CRITICAL RISK"
+    assert "Intercept" in res["recommendation"]

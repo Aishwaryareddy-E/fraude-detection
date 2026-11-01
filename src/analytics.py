@@ -6,7 +6,7 @@ geographic distributions, and transparent investigation indicators.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 
 def calculate_kpis(df: pd.DataFrame) -> Dict[str, Any]:
@@ -447,3 +447,171 @@ def compare_fraud_datasets(df_retail: pd.DataFrame, cc_df: pd.DataFrame) -> pd.D
         {"Dimension": "Primary Detection Vector", "Primary Dataset (archive (8).zip)": "Nocturnal window, Category velocity, Geo distance", "Credit Card Dataset (creditcard.csv)": "PCA subspace anomalies (V14, V17, V12 negative separation)"},
     ]
     return pd.DataFrame(rows)
+
+
+def get_radar_profiles(df: pd.DataFrame) -> Tuple[List[str], List[float], List[float]]:
+    """
+    Computes comparative multi-dimensional risk footprint normalized to [0, 100]
+    comparing Legitimate vs Fraudulent transactions.
+    """
+    fraud_mask = df["is_fraud"] == 1
+    legit_mask = df["is_fraud"] == 0
+
+    categories = ["Average Ticket", "Nocturnal Probability", "Distance Outlier", "High-Risk Category", "Weekend Ratio"]
+
+    # 1. Average Ticket
+    fraud_amt = float(df.loc[fraud_mask, "amt"].mean()) if fraud_mask.any() else 0.0
+    legit_amt = float(df.loc[legit_mask, "amt"].mean()) if legit_mask.any() else 0.0
+    max_amt = max(fraud_amt, legit_amt, 1.0)
+    score_fraud_amt = (fraud_amt / max_amt) * 100
+    score_legit_amt = (legit_amt / max_amt) * 100
+
+    # 2. Nocturnal Probability (22:00 to 03:00)
+    if "hour" in df.columns:
+        night_hours = [22, 23, 0, 1, 2, 3]
+        fraud_night = float(df.loc[fraud_mask, "hour"].isin(night_hours).mean()) * 100 if fraud_mask.any() else 0.0
+        legit_night = float(df.loc[legit_mask, "hour"].isin(night_hours).mean()) * 100 if legit_mask.any() else 0.0
+    else:
+        fraud_night, legit_night = 50.0, 50.0
+
+    # 3. Distance Outlier (> 50 km)
+    if "distance_km" in df.columns:
+        fraud_dist = float((df.loc[fraud_mask, "distance_km"] > 50).mean()) * 100 if fraud_mask.any() else 0.0
+        legit_dist = float((df.loc[legit_mask, "distance_km"] > 50).mean()) * 100 if legit_mask.any() else 0.0
+    else:
+        fraud_dist, legit_dist = 20.0, 20.0
+
+    # 4. High-Risk Category (shopping_net, grocery_pos, misc_net)
+    high_cats = ["shopping_net", "grocery_pos", "misc_net"]
+    fraud_cat = float(df.loc[fraud_mask, "category"].astype(str).isin(high_cats).mean()) * 100 if fraud_mask.any() else 0.0
+    legit_cat = float(df.loc[legit_mask, "category"].astype(str).isin(high_cats).mean()) * 100 if legit_mask.any() else 0.0
+
+    # 5. Weekend Ratio
+    if "is_weekend" in df.columns:
+        fraud_wknd = float(df.loc[fraud_mask, "is_weekend"].mean()) * 100 if fraud_mask.any() else 0.0
+        legit_wknd = float(df.loc[legit_mask, "is_weekend"].mean()) * 100 if legit_mask.any() else 0.0
+    else:
+        fraud_wknd, legit_wknd = 28.5, 28.5
+
+    fraud_scores = [round(score_fraud_amt, 1), round(fraud_night, 1), round(fraud_dist, 1), round(fraud_cat, 1), round(fraud_wknd, 1)]
+    legit_scores = [round(score_legit_amt, 1), round(legit_night, 1), round(legit_dist, 1), round(legit_cat, 1), round(legit_wknd, 1)]
+
+    return categories, legit_scores, fraud_scores
+
+
+def simulate_threshold_interception(
+    df: pd.DataFrame,
+    amount_cutoff: float = 300.0,
+    distance_cutoff: float = 80.0,
+    night_window_active: bool = True,
+) -> Dict[str, Any]:
+    """
+    What-If Simulation Engine: Calculates the operational tradeoff between
+    intercepted fraud dollars/cases and analyst review workload across chosen thresholds.
+    """
+    total_records = len(df)
+    total_fraud_records = int((df["is_fraud"] == 1).sum())
+    total_fraud_dollars = float(df.loc[df["is_fraud"] == 1, "amt"].sum())
+
+    flag_amount = df["amt"] >= amount_cutoff
+    flag_distance = (df["distance_km"] >= distance_cutoff) if "distance_km" in df.columns else False
+    if night_window_active and "hour" in df.columns:
+        flag_night = (df["hour"] >= 22) | (df["hour"] <= 3)
+    else:
+        flag_night = False
+
+    # Combined heuristic flag (triggered if amount exceeded OR (night + distance))
+    flagged = flag_amount | (flag_night & flag_distance)
+
+    total_flagged = int(flagged.sum())
+    fraud_caught = int((flagged & (df["is_fraud"] == 1)).sum())
+    fraud_dollars_caught = float(df.loc[flagged & (df["is_fraud"] == 1), "amt"].sum())
+    false_positives = total_flagged - fraud_caught
+
+    recall_cases_pct = (fraud_caught / total_fraud_records * 100.0) if total_fraud_records > 0 else 0.0
+    recall_dollars_pct = (fraud_dollars_caught / total_fraud_dollars * 100.0) if total_fraud_dollars > 0 else 0.0
+    workload_rate_pct = (total_flagged / total_records * 100.0) if total_records > 0 else 0.0
+    precision_pct = (fraud_caught / total_flagged * 100.0) if total_flagged > 0 else 0.0
+
+    return {
+        "total_flagged": total_flagged,
+        "fraud_caught": fraud_caught,
+        "total_fraud_records": total_fraud_records,
+        "fraud_dollars_caught": round(fraud_dollars_caught, 2),
+        "total_fraud_dollars": round(total_fraud_dollars, 2),
+        "false_positives": false_positives,
+        "recall_cases_pct": round(recall_cases_pct, 2),
+        "recall_dollars_pct": round(recall_dollars_pct, 2),
+        "workload_rate_pct": round(workload_rate_pct, 2),
+        "precision_pct": round(precision_pct, 2),
+    }
+
+
+def calculate_single_transaction_risk(
+    amt: float, category: str, hour: int, distance_km: float
+) -> Dict[str, Any]:
+    """
+    Computes a transparent, multi-vector 0 to 100 risk score for a single transaction.
+    """
+    score = 0.0
+    factors = []
+
+    # Amount factor (up to 40 points)
+    if amt >= 500:
+        score += 40.0
+        factors.append(f"Critical Ticket Amount (${amt:.2f} >= $500: +40 pts)")
+    elif amt >= 300:
+        score += 25.0
+        factors.append(f"Elevated Ticket Amount (${amt:.2f} >= $300: +25 pts)")
+    elif amt >= 150:
+        score += 10.0
+        factors.append(f"Moderate Ticket Amount (${amt:.2f} >= $150: +10 pts)")
+
+    # Diurnal Hour factor (up to 30 points)
+    if hour in [22, 23, 0, 1, 2]:
+        score += 30.0
+        factors.append(f"Peak Nocturnal Surge Window (Hour {hour}:00: +30 pts)")
+    elif hour in [3, 4, 21]:
+        score += 15.0
+        factors.append(f"Off-Peak Night Window (Hour {hour}:00: +15 pts)")
+
+    # Category factor (up to 20 points)
+    high_cats = ["shopping_net", "grocery_pos", "misc_net"]
+    if category in high_cats:
+        score += 20.0
+        factors.append(f"High-Risk Vulnerable Category ({category}: +20 pts)")
+
+    # Distance factor (up to 10 points)
+    if distance_km >= 100:
+        score += 10.0
+        factors.append(f"Extreme Haversine Distance ({distance_km:.1f} km >= 100 km: +10 pts)")
+    elif distance_km >= 50:
+        score += 5.0
+        factors.append(f"Elevated Haversine Distance ({distance_km:.1f} km >= 50 km: +5 pts)")
+
+    score = min(score, 100.0)
+
+    if score >= 70:
+        risk_level = "CRITICAL RISK"
+        recommendation = "🚨 Intercept & Hold: Immediate Step-Up Biometric / 3DS Challenge"
+        color = "#EF4444"
+    elif score >= 45:
+        risk_level = "ELEVATED RISK"
+        recommendation = "⚠️ Secondary Verification: Trigger Out-of-Band SMS / Push OTP"
+        color = "#F59E0B"
+    elif score >= 25:
+        risk_level = "MODERATE RISK"
+        recommendation = "ℹ️ Passive Monitoring: Log Transaction to Analyst Triage Queue"
+        color = "#38BDF8"
+    else:
+        risk_level = "LOW RISK"
+        recommendation = "✅ Automated Approval: Normal Commercial Frictionless Flow"
+        color = "#10B981"
+
+    return {
+        "score": score,
+        "risk_level": risk_level,
+        "recommendation": recommendation,
+        "color": color,
+        "factors": factors,
+    }
