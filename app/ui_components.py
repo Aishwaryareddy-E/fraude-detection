@@ -1,7 +1,8 @@
 """
 UI components, design system, theme styling, and cached data accessors
-for the Financial Fraud Analytics Streamlit Dashboard.
-Faithfully implements the Docynx Orders & Frauds Analytics Dashboards aesthetic (Image 3).
+for the Financial Fraud Analytics Dashboard.
+Implements a clean, high-performance Tableau / Power BI Dark Theme with crisp card containers,
+synchronized filter slicers, and 100% data-driven metrics.
 """
 
 import sys
@@ -30,367 +31,258 @@ from src.config import (
     COLOR_MUTED,
 )
 
-# Custom CSS reproducing the Docynx Dark Purple/Navy Dashboard Aesthetic (Image 3)
-DOCYNX_CSS = """
+# Power BI / Tableau Enterprise Dark Theme CSS
+POWERBI_TABLEAU_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
-    /* Global Typography & Deep Indigo Background */
+    /* Global Typography & Power BI Dark Canvas */
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Segoe UI', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
     .stApp {
-        background-color: #070913 !important;
+        background-color: #0B1120 !important;
         background-image: 
-            radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.12) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.10) 0px, transparent 50%),
-            radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 50%) !important;
+            radial-gradient(at 10% 10%, rgba(30, 58, 138, 0.15) 0px, transparent 40%),
+            radial-gradient(at 90% 90%, rgba(14, 165, 233, 0.10) 0px, transparent 40%) !important;
         color: #F8FAFC;
     }
 
-    /* Top Docynx App Navigation Bar */
-    .docynx-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: #0B0F1F;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 14px 22px;
+    /* Power BI Executive Header Banner */
+    .pbi-header {
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 10px;
+        padding: 16px 24px;
         margin-bottom: 20px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-    .docynx-brand-wrap {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         display: flex;
+        justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
         gap: 16px;
     }
-    .docynx-logo {
-        font-size: 1.75rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #D946EF 0%, #A855F7 60%, #818CF8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.03em;
-    }
-    .docynx-title {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #F8FAFC;
-        letter-spacing: -0.01em;
-    }
-    .docynx-subtitle {
-        font-size: 0.78rem;
-        color: #94A3B8;
-    }
-
-    /* Top KPI Row Cards (Image 3 Style) */
-    .kpi-row-7 {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    @media (max-width: 1400px) {
-        .kpi-row-7 {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-    }
-    @media (max-width: 900px) {
-        .kpi-row-7 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-    .docynx-kpi-card {
-        background: #0F1528;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        padding: 12px 14px;
-        position: relative;
-        transition: transform 0.15s ease, border-color 0.15s ease;
-    }
-    .docynx-kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(168, 85, 247, 0.4);
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    }
-    .kpi-header-label {
-        font-size: 0.74rem;
-        color: #94A3B8;
-        font-weight: 600;
-        margin-bottom: 6px;
+    .pbi-header-left {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 14px;
     }
-    .kpi-val-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 4px;
-    }
-    .kpi-icon-badge {
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
+    .pbi-header-icon {
+        width: 44px;
+        height: 44px;
+        background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.85rem;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
     }
-    .kpi-main-val {
-        font-size: 1.25rem;
-        font-weight: 800;
+    .pbi-title {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+    }
+    .pbi-subtitle {
+        font-size: 0.82rem;
+        color: #94A3B8;
+        margin-top: 2px;
+    }
+    .pbi-badge {
+        background: rgba(14, 165, 233, 0.15);
+        border: 1px solid rgba(14, 165, 233, 0.35);
+        color: #38BDF8;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    /* Power BI / Tableau KPI Metric Card Grid */
+    .pbi-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .pbi-kpi-card {
+        background: #1E293B;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 14px 16px;
+        position: relative;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .pbi-kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(56, 189, 248, 0.4);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+    .pbi-kpi-card.fraud {
+        border-top: 3px solid #EF4444;
+    }
+    .pbi-kpi-card.legit {
+        border-top: 3px solid #10B981;
+    }
+    .pbi-kpi-card.neutral {
+        border-top: 3px solid #0EA5E9;
+    }
+    .pbi-kpi-card.warning {
+        border-top: 3px solid #F59E0B;
+    }
+    .pbi-kpi-card.purple {
+        border-top: 3px solid #8B5CF6;
+    }
+
+    .pbi-kpi-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94A3B8;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .pbi-kpi-value {
+        font-size: 1.45rem;
+        font-weight: 700;
         color: #FFFFFF;
         font-family: 'JetBrains Mono', monospace;
         letter-spacing: -0.02em;
     }
-    .kpi-growth-delta {
-        font-size: 0.68rem;
-        font-weight: 600;
-        color: #22C55E;
+    .pbi-kpi-footer {
         display: flex;
         align-items: center;
-        gap: 3px;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-size: 0.74rem;
+        color: #64748B;
     }
-    .kpi-growth-delta.down {
-        color: #EF4444;
+    .pbi-delta {
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.70rem;
+    }
+    .pbi-delta.up-fraud {
+        background: rgba(239, 68, 68, 0.2);
+        color: #F87171;
+    }
+    .pbi-delta.up-good {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34D399;
+    }
+    .pbi-delta.neutral {
+        background: rgba(56, 189, 248, 0.15);
+        color: #38BDF8;
     }
 
-    /* Container Box Styling */
-    .docynx-box {
-        background: #0F1528;
+    /* Tableau Chart Containers */
+    .tableau-card {
+        background: #1E293B;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 16px;
         height: 100%;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
-    .box-title {
-        font-size: 0.92rem;
+    .tableau-card-title {
+        font-size: 0.90rem;
         font-weight: 700;
-        color: #F8FAFC;
+        color: #F1F5F9;
         margin-bottom: 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 8px;
     }
 
-    /* Payment Overview Horizontal Mini-cards */
-    .payment-overview-row {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-        background: #0A0E1C;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 16px;
+    /* Executive Policy Directives Cards */
+    .directive-card {
+        background: #1E293B;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 14px 16px;
+        border-left: 4px solid #0EA5E9;
     }
-    .payment-mini-item {
-        text-align: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
-        padding: 0 8px;
+    .directive-card.critical {
+        border-left-color: #EF4444;
     }
-    .payment-mini-item:last-child {
-        border-right: none;
+    .directive-card.warning {
+        border-left-color: #F59E0B;
     }
-    .payment-mini-label {
-        font-size: 0.72rem;
-        color: #94A3B8;
-        margin-top: 4px;
+    .directive-card.success {
+        border-left-color: #10B981;
+    }
+    .directive-title {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #F8FAFC;
         margin-bottom: 4px;
     }
-    .payment-mini-val {
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* Risk Badges (Image 3 Table Style) */
-    .risk-pill {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 4px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-align: center;
-    }
-    .risk-pill.high {
-        background: #EF4444;
-        color: #FFFFFF;
-    }
-    .risk-pill.medium {
-        background: #F59E0B;
-        color: #FFFFFF;
-    }
-    .risk-pill.low {
-        background: #84CC16;
-        color: #0F172A;
-    }
-    .risk-pill.safe {
-        background: #06B6D4;
-        color: #0F172A;
-    }
-
-    /* Bottom Alert Cards (Image 3 Style) */
-    .docynx-alert-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 10px;
-        margin-bottom: 24px;
-    }
-    @media (max-width: 1200px) {
-        .docynx-alert-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
-    @media (max-width: 768px) {
-        .docynx-alert-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    .docynx-alert-card {
-        background: #141026;
-        border: 1px solid rgba(239, 68, 68, 0.35);
-        border-radius: 10px;
-        padding: 14px 16px;
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
-    }
-    .docynx-alert-icon {
-        color: #EF4444;
-        font-size: 1.2rem;
-        line-height: 1;
-    }
-    .docynx-alert-title {
+    .directive-text {
         font-size: 0.78rem;
-        font-weight: 700;
-        color: #F8FAFC;
-        margin-bottom: 2px;
-    }
-    .docynx-alert-desc {
-        font-size: 0.72rem;
         color: #CBD5E1;
-        line-height: 1.35;
-    }
-    .docynx-alert-date {
-        font-size: 0.68rem;
-        color: #94A3B8;
-        margin-top: 4px;
+        line-height: 1.45;
     }
 
-    /* Sidebar Navigation (Image 3 Style) */
+    /* Sidebar adjustments */
     section[data-testid="stSidebar"] {
-        background-color: #070914 !important;
+        background-color: #0F172A !important;
         border-right: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .sidebar-alert-box {
-        background: #190F24;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        border-radius: 10px;
-        padding: 14px;
-        margin-top: 24px;
-        text-align: center;
-        box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
-    }
-    .sidebar-alert-label {
-        font-size: 0.76rem;
-        color: #F87171;
+    .sidebar-slicer-title {
+        font-size: 1.05rem;
         font-weight: 700;
+        color: #38BDF8;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 6px;
-        margin-bottom: 6px;
-    }
-    .sidebar-alert-val {
-        font-size: 2.1rem;
-        font-weight: 900;
-        color: #EF4444;
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: -0.02em;
-    }
-    .sidebar-alert-btn {
-        display: inline-block;
-        width: 100%;
-        margin-top: 10px;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: 1px solid #C026D3;
-        background: transparent;
-        color: #E879F9;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-align: center;
-        text-decoration: none;
-    }
-    .sidebar-alert-btn:hover {
-        background: rgba(192, 38, 211, 0.15);
-    }
-
-    /* Active Sidebar Item Highlight */
-    .sidebar-nav-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 14px;
-        border-radius: 8px;
-        color: #94A3B8;
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin-bottom: 4px;
-        transition: background 0.15s ease, color 0.15s ease;
-    }
-    .sidebar-nav-item.active {
-        background: linear-gradient(135deg, #9333EA 0%, #C026D3 100%);
-        color: #FFFFFF;
-        box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 14px;
     }
 </style>
 """
 
 
 def apply_theme():
-    """Injects Docynx styling into the active Streamlit page."""
-    st.markdown(DOCYNX_CSS, unsafe_allow_html=True)
+    """Injects Power BI / Tableau styling into the active Streamlit page."""
+    st.markdown(POWERBI_TABLEAU_CSS, unsafe_allow_html=True)
 
 
-@st.cache_data(show_spinner="Loading primary transaction database...", ttl=3600)
+@st.cache_data(show_spinner="Loading primary transaction dataset...", ttl=3600)
 def get_dataset(use_sample: bool = False) -> pd.DataFrame:
     """Cached loader for the primary processed Parquet dataset."""
     return load_processed_data(sample=use_sample)
 
 
-@st.cache_data(show_spinner="Loading credit card comparative database...", ttl=3600)
+@st.cache_data(show_spinner="Loading European creditcard dataset...", ttl=3600)
 def get_creditcard_dataset() -> pd.DataFrame:
     """Cached loader for the European Credit Card dataset."""
     return load_creditcard_data()
 
 
-def render_docynx_header(title: str = "Orders & Frauds Analytics Dashboards", subtitle: str = "Real-Time Transaction Intelligence & Fraud Monitoring"):
+def render_powerbi_header(title: str, subtitle: str, badge: str = "POWER BI ANALYTICS"):
     """
-    Renders the Docynx Brand Header with Glowing Purple Tag (Image 3 Style).
+    Renders an executive Power BI / Tableau Header Banner.
     """
     st.markdown(
         f"""
-        <div class="docynx-header">
-            <div class="docynx-brand-wrap">
-                <div class="docynx-logo">Docynx</div>
+        <div class="pbi-header">
+            <div class="pbi-header-left">
+                <div class="pbi-header-icon">📊</div>
                 <div>
-                    <div class="docynx-title">{title}</div>
-                    <div class="docynx-subtitle">{subtitle}</div>
+                    <div class="pbi-title">{title}</div>
+                    <div class="pbi-subtitle">{subtitle}</div>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #C084FC; padding: 4px 12px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">
-                    LIVE MONITORING
-                </span>
+            <div>
+                <span class="pbi-badge">{badge}</span>
             </div>
         </div>
         """,
@@ -398,74 +290,111 @@ def render_docynx_header(title: str = "Orders & Frauds Analytics Dashboards", su
     )
 
 
-def render_docynx_kpi(label: str, value: str, delta: str = "↑ 108.7% vs Apr 2026", icon: str = "🛍️", icon_bg: str = "#EC4899", delta_dir: str = "up"):
+def render_hero(title: str, subtitle: str, badge_text: str = "POWER BI ANALYTICS", pulse_alert: Optional[str] = None):
+    """Alias for render_powerbi_header for backward compatibility."""
+    return render_powerbi_header(title, subtitle, badge=badge_text)
+
+
+def render_pbi_kpi(
+    label: str,
+    value: str,
+    subtext: str = "",
+    delta: str = "",
+    delta_type: str = "neutral",
+    card_type: str = "neutral",
+):
     """
-    Generates an HTML snippet for a Docynx KPI card (Image 3 Top Row).
+    Generates a Power BI styled KPI card with top color strip and delta badge.
     """
-    delta_class = "down" if delta_dir == "down" else ""
+    delta_class = f"up-fraud" if delta_type == "fraud" else ("up-good" if delta_type == "good" else "neutral")
+    delta_html = f'<span class="pbi-delta {delta_class}">{delta}</span>' if delta else ""
     return f"""
-    <div class="docynx-kpi-card">
-        <div class="kpi-header-label">
-            <span>{label}</span>
+    <div class="pbi-kpi-card {card_type}">
+        <div class="pbi-kpi-label">{label}</div>
+        <div class="pbi-kpi-value">{value}</div>
+        <div class="pbi-kpi-footer">
+            <span>{subtext}</span>
+            {delta_html}
         </div>
-        <div class="kpi-val-row">
-            <div class="kpi-icon-badge" style="background: {icon_bg}25; color: {icon_bg};">
-                {icon}
-            </div>
-            <div class="kpi-main-val">{value}</div>
-        </div>
-        <div class="kpi-growth-delta {delta_class}">{delta}</div>
+    </div>
+    """
+
+
+def render_kpi_card(
+    label: str,
+    value: str,
+    subtext: str = "",
+    status: str = "neutral",
+    delta: str = "",
+    delta_type: str = "neutral",
+    icon: str = "📊",
+):
+    """Alias for render_pbi_kpi for backward compatibility."""
+    return render_pbi_kpi(label, value, subtext, delta=delta, delta_type=delta_type, card_type=status)
+
+
+def render_circular_gauge(
+    label: str,
+    percentage: float,
+    color: str = "#38BDF8",
+    subtext: str = "",
+    value_override: str = "",
+):
+    """Clean Power BI / Tableau style metric gauge card."""
+    val_text = value_override if value_override else f"{percentage:.1f}%"
+    return f"""
+    <div style="background:#1E293B; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px 14px; margin-bottom:10px;">
+        <div style="font-size:0.72rem; color:#94A3B8; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">{label}</div>
+        <div style="font-size:1.35rem; font-weight:700; color:{color}; font-family:'JetBrains Mono', monospace; margin:2px 0;">{val_text}</div>
+        <div style="font-size:0.72rem; color:#64748B;">{subtext}</div>
     </div>
     """
 
 
 def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Renders the Docynx Left Sidebar Navigation & Filter Slicers (Image 3 Style).
+    Renders standard Power BI slicers in the sidebar with live interactive filtering.
     """
     st.sidebar.markdown(
         """
-        <div style="padding: 10px 0 16px 0;">
-            <div style="font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #D946EF, #A855F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                Docynx
-            </div>
-            <div style="font-size: 0.74rem; color: #94A3B8;">Enterprise Fraud Surveillance</div>
+        <div class="sidebar-slicer-title">
+            <span>⚙️</span> Interactive Slicers
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 1. Dataset Partition
+    # 1. Dataset Partition Slicer
     sources = ["All Historical Sources"] + sorted(list(df["source_dataset"].unique()))
-    selected_source = st.sidebar.selectbox("Data Partition", sources, index=0)
+    selected_source = st.sidebar.selectbox("Data Partition Slicer", sources, index=0)
 
-    # 2. Date Range Filter
+    # 2. Date Range Slicer
     min_date = df["trans_date_trans_time"].min().date()
     max_date = df["trans_date_trans_time"].max().date()
 
     date_range = st.sidebar.date_input(
-        "Date Window",
+        "Transaction Date Slicer",
         value=(min_date, max_date),
         min_value=min_date,
         max_value=max_date,
     )
 
-    # 3. Category Multi-select
+    # 3. Category Slicer
     all_categories = sorted(list(df["category"].dropna().unique()))
     selected_categories = st.sidebar.multiselect(
-        "Merchant Category",
+        "Merchant Category Slicer",
         options=all_categories,
         default=[],
         placeholder="All Categories (Default)",
     )
 
-    # 4. State Filter
+    # 4. State Slicer
     all_states = ["All States"] + sorted(list(df["state"].dropna().unique()))
-    selected_state = st.sidebar.selectbox("State / Region", all_states, index=0)
+    selected_state = st.sidebar.selectbox("Jurisdiction / State Slicer", all_states, index=0)
 
-    # 5. Fraud Status Filter
+    # 5. Fraud Classification Slicer
     fraud_filter = st.sidebar.radio(
-        "Classification",
+        "Fraud Classification",
         options=["All Transactions", "Fraud Only", "Legitimate Only"],
         index=0,
     )
@@ -494,17 +423,16 @@ def render_sidebar_filters(df: pd.DataFrame) -> pd.DataFrame:
     elif fraud_filter == "Legitimate Only":
         filtered_df = filtered_df[filtered_df["is_fraud"] == 0]
 
-    # Sidebar Bottom Alert Card (Image 3 Left Bottom Box: ⚠️ Potential fraud detected: 610)
-    current_fraud_count = int((filtered_df["is_fraud"] == 1).sum()) if "is_fraud" in filtered_df.columns else 0
+    # Display active filter status in sidebar footer
+    filter_pct = (len(filtered_df) / len(df)) * 100 if len(df) > 0 else 0.0
+    st.sidebar.markdown("---")
     st.sidebar.markdown(
         f"""
-        <div class="sidebar-alert-box">
-            <div class="sidebar-alert-label">
-                <span>⚠️</span> Potential fraud detected
-            </div>
-            <div class="sidebar-alert-val">{current_fraud_count:,}</div>
-            <div style="font-size: 0.70rem; color: #94A3B8; margin-top: 2px;">Confirmed Historical Incidents</div>
-            <a class="sidebar-alert-btn" href="/Transaction_Explorer" target="_self">View High Risk Customers</a>
+        <div style="font-size: 0.8rem; color: #94A3B8;">
+            <b>Active Ledger Slicing:</b><br>
+            <span style="color: #38BDF8; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+                {len(filtered_df):,}
+            </span> / {len(df):,} ({filter_pct:.1f}%)
         </div>
         """,
         unsafe_allow_html=True,
