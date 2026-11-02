@@ -9,6 +9,7 @@
 [![Pytest](https://img.shields.io/badge/Tested%20with-Pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
 
 ---
+URL of the dashboard https://fraude-detection-analysis.streamlit.app/
 
 ## 📌 Executive Summary
 
